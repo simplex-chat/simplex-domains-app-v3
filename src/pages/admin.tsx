@@ -311,6 +311,27 @@ function AdminPanel() {
         </Section>
       </Card>
 
+      <Card>
+        <Section>
+          <Typography fontVariant="largeBold">Check Reserved Name</Typography>
+          <Row>
+            <Input
+              label="Check name"
+              value={checkName}
+              onChange={(e) => setCheckName(e.target.value)}
+              placeholder="simplex"
+              error={checkNameError}
+            />
+            <Button size="small" onClick={checkReserved} disabled={!checkName || !!checkNameError}>
+              Check
+            </Button>
+            {checkResult && (
+              <StatusText $success={checkResult === 'NOT RESERVED'}>{checkResult}</StatusText>
+            )}
+          </Row>
+        </Section>
+      </Card>
+
       {isOwner && (
         <>
           <Card>
@@ -360,25 +381,6 @@ function AdminPanel() {
           <Card>
             <Section>
               <Typography fontVariant="largeBold">Reserved Names</Typography>
-              <Row>
-                <Input
-                  label="Check name"
-                  value={checkName}
-                  onChange={(e) => setCheckName(e.target.value)}
-                  placeholder="simplex"
-                  error={checkNameError}
-                />
-                <Button
-                  size="small"
-                  onClick={checkReserved}
-                  disabled={!checkName || !!checkNameError}
-                >
-                  Check
-                </Button>
-                {checkResult && (
-                  <StatusText $success={checkResult === 'NOT RESERVED'}>{checkResult}</StatusText>
-                )}
-              </Row>
               <Row>
                 <Input
                   label="Reserve name(s)"

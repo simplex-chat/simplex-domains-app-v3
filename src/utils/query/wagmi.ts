@@ -11,8 +11,6 @@ import {
 import { createConfig, createStorage, fallback, http, webSocket } from 'wagmi'
 import { localhost, mainnet, sepolia } from 'wagmi/chains'
 
-import { ccipRequest } from '@ensdomains/ensjs/utils'
-
 import { getChainsFromUrl, SupportedChain } from '@app/constants/chains'
 
 import { isInsideSafe } from '../safe'
@@ -160,9 +158,7 @@ const wagmiConfig_ = createConfig({
         },
       },
       transport: (params) => transports[chainId]({ ...params }),
-      ccipRead: {
-        request: ccipRequest(chain),
-      },
+      ccipRead: false,
     })
   },
 })
