@@ -158,7 +158,7 @@ const wagmiConfig_ = createConfig({
         },
       },
       transport: (params) => transports[chainId]({ ...params }),
-      ccipRead: false,
+      ccipRead: { request: () => Promise.reject(new Error('CCIP-Read disabled')) },
     })
   },
 })
