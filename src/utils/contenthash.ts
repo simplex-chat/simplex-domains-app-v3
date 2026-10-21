@@ -18,27 +18,15 @@ type GetContentHashLinkParameters = {
   decodedContentHash: DecodedContentHash
 }
 
-export const getContentHashLink = ({
-  name,
-  chainId,
-  decodedContentHash,
-}: GetContentHashLinkParameters) => {
+export const getContentHashLink = ({ decodedContentHash }: GetContentHashLinkParameters) => {
   const protocol = decodedContentHash.protocolType
   const hash = decodedContentHash.decoded
 
-  const useEthLink =
-    ['eth', 'testing', 'simplex'].includes(name.split('.').pop() || '') &&
-    chainId === 1 &&
-    (protocol === 'ipfs' || protocol === 'ipns')
-  if (useEthLink) {
-    return `https://${name}.limo`
-  }
-
   if (protocol === 'ipfs') {
-    return `https://${hash}.ipfs.cf-ipfs.com` // using ipfs's secured origin gateway
+    return `https://${hash}.ipfs.dweb.link`
   }
   if (protocol === 'ipns') {
-    return `https://ipfs.euc.li/ipns/${hash}`
+    return `https://${hash}.ipns.dweb.link`
   }
   if (protocol === 'bzz') {
     return `https://gateway.ethswarm.org/bzz/${hash}`
