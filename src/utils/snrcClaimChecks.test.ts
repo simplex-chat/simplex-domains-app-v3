@@ -96,7 +96,7 @@ const child = (parent: Hex, label: string) =>
 type Chain = {
   children: Record<Hex, string[]>
   subnames: Record<Hex, string[]>
-  generation: bigint
+  generation: Record<Hex, bigint>
   generations: Record<Hex, bigint>
   owners: Record<Hex, Address>
   resolvers: Record<Hex, Address>
@@ -136,7 +136,7 @@ beforeEach(() => {
     // The registrar's labels as viem decodes them: leading NUL bytes dropped.
     if (functionName === 'getChildren')
       return [indexed.map((label) => labelhash(label)), indexed.map((l) => l.replace(/^\0+/, ''))]
-    if (functionName === 'generation') return chain.generation
+    if (functionName === 'generation') return chain.generation[args![0] as Hex] ?? 0n
     if (functionName === 'generationAt') return chain.generations[args![0] as Hex] ?? 0n
     if (functionName === 'owner') return chain.owners[args![0] as Hex] ?? zeroAddress
     if (functionName === 'resolver' && !args) return chain.subnameResolver
@@ -159,7 +159,7 @@ describe('getClaimChecks', () => {
     chain = {
       children: { [root]: ['mobile', 'shadow', 'cleared', 'gone'] },
       subnames: { [root]: ['mobile'] },
-      generation: 0n,
+      generation: {},
       generations: {},
       owners: { [root]: HOLDER, [tracked]: SUBNAME_REGISTRAR, [shadow]: HOLDER },
       resolvers: {
@@ -387,13 +387,27 @@ describe('getClaimChecks', () => {
 
   it('names only subnames of the current generation of a re-registered name', async () => {
     const old = child(root, 'old')
-    chain.generation = 1n
+    chain.generation[root] = 1n
     chain.generations[tracked] = 1n
     chain.children[root].push('old')
     chain.subnames[root].push('old')
     chain.owners[old] = SUBNAME_REGISTRAR
     const { nodes } = await getClaimChecks(client, 'alice.testing')
     expect(nodes.find((n) => n.node === tracked)?.name).toBe('mobile.alice.testing')
+    expect(nodes.find((n) => n.node === old)?.status).toBe('registrar')
+  })
+
+  it("names a subname's children by the subname's current generation", async () => {
+    const inner = child(tracked, 'inner')
+    const old = child(tracked, 'old')
+    chain.children[tracked] = ['inner', 'old']
+    chain.subnames[tracked] = ['inner', 'old']
+    chain.generation[tracked] = 2n
+    chain.generations[inner] = 2n
+    chain.generations[old] = 1n
+    for (const node of [inner, old]) chain.owners[node] = SUBNAME_REGISTRAR
+    const { nodes } = await getClaimChecks(client, 'alice.testing')
+    expect(nodes.find((n) => n.node === inner)?.name).toBe('inner.mobile.alice.testing')
     expect(nodes.find((n) => n.node === old)?.status).toBe('registrar')
   })
 
