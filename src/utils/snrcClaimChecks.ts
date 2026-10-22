@@ -127,7 +127,7 @@ const getSubtree = async (
     return liveName ? { status: 'tracked', name: liveName } : { status: 'registrar' }
   }
   const registrar = { address: subnameRegistrar, abi: subnameRegistrarAbi } as const
-  const getLiveNames = async (parent: Hex, parentName: string, rootGeneration: bigint) => {
+  const getLiveNames = async (parent: Hex, parentName: string) => {
     const count = await readContract(client, {
       ...registrar,
       functionName: 'childrenLength',
@@ -141,13 +141,14 @@ const getSubtree = async (
     const children = hashes.map((hash) =>
       keccak256(encodePacked(['bytes32', 'bytes32'], [parent, hash])),
     )
-    const generations = await Promise.all(
-      children.map((child) =>
+    const [parentGeneration, ...generations] = await Promise.all([
+      readContract(client, { ...registrar, functionName: 'generation', args: [parent] }),
+      ...children.map((child) =>
         readContract(client, { ...registrar, functionName: 'generationAt', args: [child] }),
       ),
-    )
+    ])
     return children.flatMap((child, i) =>
-      generations[i] === rootGeneration &&
+      generations[i] === parentGeneration &&
       labelhash(labels[i]) === hashes[i] &&
       ALLOWED_LABEL_REGEX.test(labels[i])
         ? [[child, `${labels[i]}.${parentName}`] as const]
@@ -156,10 +157,7 @@ const getSubtree = async (
   }
 
   const root = namehash(name)
-  const [[rootOwner, rootResolver], rootGeneration] = await Promise.all([
-    readRegistry(root),
-    readContract(client, { ...registrar, functionName: 'generation', args: [root] }),
-  ])
+  const [rootOwner, rootResolver] = await readRegistry(root)
   const rootNode: SubtreeNode = {
     node: root,
     status: 'tracked',
@@ -190,9 +188,7 @@ const getSubtree = async (
     // eslint-disable-next-line no-await-in-loop
     const [liveNames, registryRecords] = await Promise.all([
       Promise.all(
-        parents.flatMap((parent) =>
-          parent.name ? [getLiveNames(parent.node, parent.name, rootGeneration)] : [],
-        ),
+        parents.flatMap((parent) => (parent.name ? [getLiveNames(parent.node, parent.name)] : [])),
       ),
       Promise.all(children.map(readRegistry)),
     ])
