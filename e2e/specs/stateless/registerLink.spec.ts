@@ -104,10 +104,32 @@ test('SNRC: a register link opened with a connected wallet waits for Next', asyn
   await login.connect()
   await page.goto(linkTo(name))
 
-  const nextButton = page.getByTestId('next-button')
+  const nextButton = page.getByTestId('next-button').filter({ hasText: 'Next' })
   await expect(nextButton).toBeEnabled({ timeout: 90000 })
-  await page.waitForTimeout(3000)
-  await expect(nextButton).toHaveText('Next')
   await nextButton.click()
   await expect(page.getByTestId('next-button')).toHaveText('Begin')
+})
+
+test('SNRC: edits made in the profile step outlive going back to the greeting', async ({
+  page,
+  login,
+}) => {
+  const name = `link${Date.now().toString(36)}.simplex`
+  const editedChannel = 'https://smp16.simplex.im/c#Q_edited-key'
+  const channelInput = page.getByTestId('multi-url-field-simplex.channel-input-0')
+
+  await page.goto(linkTo(name))
+  await login.connect()
+  await expect(page.getByTestId('next-button')).toHaveText('Begin', { timeout: 90000 })
+
+  await page.getByTestId('setup-profile-button').click()
+  await expect(channelInput).toHaveValue(channel)
+  await channelInput.fill(editedChannel)
+  await page.getByTestId('profile-submit-button').click()
+  await expect(page.getByTestId('next-button')).toHaveText('Begin')
+
+  await page.getByRole('button', { name: 'Back' }).click()
+  await page.getByTestId('profile-back-button').click()
+  await page.getByTestId('next-button').filter({ hasText: 'Next' }).click()
+  await expect(channelInput).toHaveValue(editedChannel)
 })

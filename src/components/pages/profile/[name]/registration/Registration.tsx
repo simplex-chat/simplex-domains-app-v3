@@ -190,15 +190,16 @@ const Registration = ({ nameDetails, isLoading, linkRecords }: Props) => {
       payload: referrerHex,
       selected,
     })
+    const applyLink = !!linkRecords && !item.records.length
     dispatch({
       name: 'setProfileData',
       payload: {
-        records: linkRecords ?? item.records,
+        records: applyLink ? linkRecords : item.records,
         resolverAddress: defaultResolverAddress,
       },
       selected,
     })
-    if (linkRecords) {
+    if (applyLink) {
       dispatch({
         name: 'setQueue',
         payload: ['pricing', 'info', 'transactions', 'complete'],

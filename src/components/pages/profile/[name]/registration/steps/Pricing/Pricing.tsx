@@ -546,9 +546,9 @@ const Pricing = ({
   const { data: balance } = useBalance({ address })
   const resolverAddress = useContractAddress({ contract: 'ensPublicResolver' })
   const { data: ethPrice } = useEthPrice()
-  const { required: nftRequired, hasNft } = useNftGateStatus({ address })
+  const { required: nftRequired, hasNft, loaded: nftLoaded } = useNftGateStatus({ address })
   const blockedByNftGate = nftRequired && hasNft === false
-  const { isReserved } = useReservedStatus({ name })
+  const { isReserved, loaded: reservedLoaded } = useReservedStatus({ name })
   const { minCharLength } = useControllerLimits()
   const labelLen = name ? name.split('.')[0].length : 0
   // minCharLength is only enforced on top-level register(); subname creation
@@ -710,7 +710,13 @@ const Pricing = ({
               estimatedTotal,
               ethPrice,
               durationType,
-              autoNext: !!linkRecords && hasConnected,
+              autoNext:
+                !!linkRecords &&
+                hasConnected &&
+                reservedLoaded &&
+                nftLoaded &&
+                minCharLength !== undefined &&
+                !fullEstimate.priceLoading,
             }}
           />
         )}
