@@ -1,10 +1,10 @@
-import { Dispatch, SetStateAction, useEffect, useState } from 'react'
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { usePreviousDistinct } from 'react-use'
 import styled, { css } from 'styled-components'
 import { match, P } from 'ts-pattern'
 import type { Address } from 'viem'
-import { useBalance } from 'wagmi'
+import { useAccountEffect, useBalance } from 'wagmi'
 import { GetBalanceData } from 'wagmi/query'
 
 import {
@@ -26,7 +26,9 @@ import { Spacer } from '@app/components/@atoms/Spacer'
 import { ConnectButton } from '@app/components/@molecules/ConnectButton/ConnectButton'
 import { DateSelection } from '@app/components/@molecules/DateSelection/DateSelection'
 import { Card } from '@app/components/Card'
+import { SocialProfileButton } from '@app/components/pages/profile/ProfileButton'
 import { SimplexInfoPanel } from '@app/components/SimplexInfoPanel'
+import { ProfileRecord } from '@app/constants/profileRecordOptions'
 import { MAX_REGISTRATION_DURATION, MIN_REGISTRATION_DURATION } from '@app/constants/simplex'
 import { useControllerLimits } from '@app/hooks/useControllerLimits'
 import { useNftGateStatus } from '@app/hooks/useNftGateStatus'
@@ -377,6 +379,25 @@ export type ActionButtonProps = {
   estimatedTotal?: bigint
   ethPrice?: bigint
   durationType: 'date' | 'years'
+  autoNext?: boolean
+}
+
+const AutoNextButton = ({ onNext }: { onNext: () => void }) => {
+  const { t } = useTranslation('register')
+  const called = useRef(false)
+
+  useEffect(() => {
+    if (called.current) return
+    called.current = true
+    onNext()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <Button data-testid="next-button" disabled loading>
+      {t('action.next', { ns: 'common' })}
+    </Button>
+  )
 }
 
 export const ActionButton = (props: ActionButtonProps) => {
@@ -461,24 +482,25 @@ export const ActionButton = (props: ActionButtonProps) => {
         ethPrice,
         durationType,
         callback,
-      }) => (
-        <Button
-          data-testid="next-button"
-          onClick={() =>
-            callback({
-              reverseRecord,
-              seconds,
-              paymentMethodChoice,
-              estimatedTotal,
-              ethPrice,
-              durationType,
-            })
-          }
-          disabled={!paymentMethodChoice}
-        >
-          {t('action.next', { ns: 'common' })}
-        </Button>
-      ),
+        autoNext,
+      }) => {
+        const onNext = () =>
+          callback({
+            reverseRecord,
+            seconds,
+            paymentMethodChoice,
+            estimatedTotal,
+            ethPrice,
+            durationType,
+          })
+        return autoNext && paymentMethodChoice ? (
+          <AutoNextButton onNext={onNext} />
+        ) : (
+          <Button data-testid="next-button" onClick={onNext} disabled={!paymentMethodChoice}>
+            {t('action.next', { ns: 'common' })}
+          </Button>
+        )
+      },
     )
 }
 
@@ -496,6 +518,7 @@ export type PricingProps = {
   initiateMoonpayRegistrationMutation: ReturnType<
     typeof useMoonpayRegistration
   >['initiateMoonpayRegistrationMutation']
+  linkRecords?: ProfileRecord[]
 }
 
 const minSeconds = MIN_REGISTRATION_DURATION
@@ -513,10 +536,13 @@ const Pricing = ({
   resolverExists,
   moonpayTransactionStatus,
   initiateMoonpayRegistrationMutation,
+  linkRecords,
 }: PricingProps) => {
   const { t } = useTranslation('register')
 
   const { address } = useAccountSafely()
+  const [hasConnected, setHasConnected] = useState(false)
+  useAccountEffect({ onConnect: ({ isReconnected }) => setHasConnected(!isReconnected) })
   const { data: balance } = useBalance({ address })
   const resolverAddress = useContractAddress({ contract: 'ensPublicResolver' })
   const { data: ethPrice } = useEthPrice()
@@ -617,6 +643,9 @@ const Pricing = ({
     <StyledCard>
       <StyledHeading>{t('heading', { name: beautifiedName })}</StyledHeading>
       <SimplexInfoPanel name={name} address={address} />
+      {linkRecords?.map(({ key, value }) => (
+        <SocialProfileButton key={key} iconKey={key} normalisedKey={key} value={value!} />
+      ))}
       <DateSelection
         {...{ seconds, setSeconds, minSeconds, maxSeconds, durationType }}
         onChangeDurationType={setDurationType}
@@ -681,6 +710,7 @@ const Pricing = ({
               estimatedTotal,
               ethPrice,
               durationType,
+              autoNext: !!linkRecords && hasConnected,
             }}
           />
         )}

@@ -7,12 +7,16 @@ import { useNameDetails } from '@app/hooks/useNameDetails'
 import { getSelectedIndex } from '@app/hooks/useRegistrationReducer'
 import { useRouterWithHistory } from '@app/hooks/useRouterWithHistory'
 import { ContentGrid } from '@app/layouts/ContentGrid'
+import { parseRegisterLink } from '@app/utils/snrcRegisterLink'
 
 export default function Page() {
   const router = useRouterWithHistory()
+  const link = parseRegisterLink(router.asPath)
   // Derive name from query or path
   const name =
-    (router.query.name as string) || router.asPath.replace('/register', '').replace('/', '')
+    link?.name ||
+    (router.query.name as string) ||
+    router.asPath.replace('/register', '').replace('/', '')
 
   const initial = useInitial()
 
@@ -60,7 +64,7 @@ export default function Page() {
     }
   }
 
-  return <Registration {...{ nameDetails, isLoading }} />
+  return <Registration {...{ nameDetails, isLoading, linkRecords: link?.records }} />
 }
 
 Page.getLayout = function getLayout(page: ReactElement) {

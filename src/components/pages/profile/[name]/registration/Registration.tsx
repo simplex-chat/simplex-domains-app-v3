@@ -63,6 +63,7 @@ const ViewProfileContainer = styled.div(
 type Props = {
   nameDetails: ReturnType<typeof useNameDetails>
   isLoading: boolean
+  linkRecords?: ProfileRecord[]
 }
 
 const StyledInnerDialog = styled(InnerDialog)(
@@ -108,7 +109,7 @@ const MoonPayIFrame = styled.iframe(
   `,
 )
 
-const Registration = ({ nameDetails, isLoading }: Props) => {
+const Registration = ({ nameDetails, isLoading, linkRecords }: Props) => {
   const { t } = useTranslation('register')
 
   const router = useRouterWithHistory()
@@ -192,11 +193,18 @@ const Registration = ({ nameDetails, isLoading }: Props) => {
     dispatch({
       name: 'setProfileData',
       payload: {
-        records: item.records,
+        records: linkRecords ?? item.records,
         resolverAddress: defaultResolverAddress,
       },
       selected,
     })
+    if (linkRecords) {
+      dispatch({
+        name: 'setQueue',
+        payload: ['pricing', 'info', 'transactions', 'complete'],
+        selected,
+      })
+    }
 
     // If profile is in queue and reverse record is selected, make sure that eth record is included and is set to address
     if (item.queue.includes('profile') && reverseRecord) {
@@ -350,6 +358,7 @@ const Registration = ({ nameDetails, isLoading }: Props) => {
                 registrationData={item}
                 moonpayTransactionStatus={moonpayTransactionStatus}
                 initiateMoonpayRegistrationMutation={initiateMoonpayRegistrationMutation}
+                linkRecords={linkRecords}
               />
             ))
             .with([false, false, 'profile'], () => (
@@ -374,6 +383,7 @@ const Registration = ({ nameDetails, isLoading }: Props) => {
                 registrationData={item}
                 onStart={onStart}
                 callback={transactionsCallback}
+                fromLink={!!linkRecords}
               />
             ))
             .with([false, false, 'complete'], () => (

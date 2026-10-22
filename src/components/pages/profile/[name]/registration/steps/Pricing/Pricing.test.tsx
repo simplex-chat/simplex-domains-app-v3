@@ -1,6 +1,6 @@
 import { render, screen } from '@app/test-utils'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { yearsToSeconds } from '@app/utils/utils'
 
@@ -52,5 +52,35 @@ describe('ActionButton', () => {
       />,
     )
     expect(screen.getByText('action.next')).toBeInTheDocument()
+  })
+  it('should go next once by itself if autoNext is set and every check passes', () => {
+    const callback = vi.fn()
+    render(
+      <ActionButton
+        {...{
+          ...baseMockData,
+          paymentMethodChoice: PaymentMethod.ethereum,
+          autoNext: true,
+          callback,
+        }}
+      />,
+    )
+    expect(callback).toHaveBeenCalledOnce()
+  })
+  it('should not go next by itself if autoNext is set but balance is too low', () => {
+    const callback = vi.fn()
+    render(
+      <ActionButton
+        {...{
+          ...baseMockData,
+          paymentMethodChoice: PaymentMethod.ethereum,
+          balance: { value: 0n } as any,
+          autoNext: true,
+          callback,
+        }}
+      />,
+    )
+    expect(screen.getByText('steps.pricing.insufficientBalance')).toBeInTheDocument()
+    expect(callback).not.toHaveBeenCalled()
   })
 })

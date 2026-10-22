@@ -202,9 +202,10 @@ type Props = {
   registrationData: RegistrationReducerDataItem
   callback: (data: { back: boolean; resetSecret?: boolean }) => void
   onStart: () => void
+  fromLink?: boolean
 }
 
-const Transactions = ({ registrationData, name, callback, onStart }: Props) => {
+const Transactions = ({ registrationData, name, callback, onStart, fromLink }: Props) => {
   const { t } = useTranslation('register')
 
   const { address } = useAccount()
@@ -357,9 +358,9 @@ const Transactions = ({ registrationData, name, callback, onStart }: Props) => {
       transactions: [createTransactionItem('commitName', registrationParams)],
       requiresManualCleanup: true,
       autoClose: true,
-      resumeLink: `/register/${name}`,
+      resumeLink: fromLink ? undefined : `/register/${name}`,
     })
-  }, [commitKey, createTransactionFlow, name, onStart, registrationParams])
+  }, [commitKey, createTransactionFlow, fromLink, name, onStart, registrationParams])
 
   const makeRegisterNameFlow = () => {
     createTransactionFlow(registerKey, {
