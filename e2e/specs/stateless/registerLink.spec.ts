@@ -50,9 +50,14 @@ test('SNRC: a register link greets with its links, connecting goes on, then comm
     await expect(page.getByTestId('body-connect-button')).toBeVisible()
   })
 
-  await test.step('connecting the wallet goes on to the info step', async () => {
+  await test.step('connecting the wallet goes on to the links, shown in full', async () => {
     await login.connect()
-    await expect(page.getByTestId('next-button')).toHaveText('Begin', { timeout: 30000 })
+    await expect(page.getByTestId('multi-url-field-simplex.contact-input-0')).toHaveValue(contact, {
+      timeout: 30000,
+    })
+    await expect(page.getByTestId('multi-url-field-simplex.channel-input-0')).toHaveValue(channel)
+    await page.getByTestId('profile-submit-button').click()
+    await expect(page.getByTestId('next-button')).toHaveText('Begin')
     await page.getByTestId('next-button').click()
   })
 
@@ -107,7 +112,7 @@ test('SNRC: a register link opened with a connected wallet waits for Next', asyn
   const nextButton = page.getByTestId('next-button').filter({ hasText: 'Next' })
   await expect(nextButton).toBeEnabled({ timeout: 90000 })
   await nextButton.click()
-  await expect(page.getByTestId('next-button')).toHaveText('Begin')
+  await expect(page.getByTestId('profile-submit-button')).toBeVisible()
 })
 
 test('SNRC: edits made in the profile step outlive going back to the greeting', async ({
@@ -120,10 +125,7 @@ test('SNRC: edits made in the profile step outlive going back to the greeting', 
 
   await page.goto(linkTo(name))
   await login.connect()
-  await expect(page.getByTestId('next-button')).toHaveText('Begin', { timeout: 90000 })
-
-  await page.getByTestId('setup-profile-button').click()
-  await expect(channelInput).toHaveValue(channel)
+  await expect(channelInput).toHaveValue(channel, { timeout: 90000 })
   await channelInput.fill(editedChannel)
   await page.getByTestId('profile-submit-button').click()
   await expect(page.getByTestId('next-button')).toHaveText('Begin')

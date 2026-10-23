@@ -199,13 +199,6 @@ const Registration = ({ nameDetails, isLoading, linkRecords }: Props) => {
       },
       selected,
     })
-    if (applyLink) {
-      dispatch({
-        name: 'setQueue',
-        payload: ['pricing', 'info', 'transactions', 'complete'],
-        selected,
-      })
-    }
 
     // If profile is in queue and reverse record is selected, make sure that eth record is included and is set to address
     if (item.queue.includes('profile') && reverseRecord) {
