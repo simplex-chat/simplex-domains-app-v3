@@ -63,6 +63,7 @@ const ViewProfileContainer = styled.div(
 type Props = {
   nameDetails: ReturnType<typeof useNameDetails>
   isLoading: boolean
+  linkRecords?: ProfileRecord[]
 }
 
 const StyledInnerDialog = styled(InnerDialog)(
@@ -108,7 +109,7 @@ const MoonPayIFrame = styled.iframe(
   `,
 )
 
-const Registration = ({ nameDetails, isLoading }: Props) => {
+const Registration = ({ nameDetails, isLoading, linkRecords }: Props) => {
   const { t } = useTranslation('register')
 
   const router = useRouterWithHistory()
@@ -189,10 +190,11 @@ const Registration = ({ nameDetails, isLoading }: Props) => {
       payload: referrerHex,
       selected,
     })
+    const applyLink = !!linkRecords && !item.records.length
     dispatch({
       name: 'setProfileData',
       payload: {
-        records: item.records,
+        records: applyLink ? linkRecords : item.records,
         resolverAddress: defaultResolverAddress,
       },
       selected,
@@ -350,6 +352,7 @@ const Registration = ({ nameDetails, isLoading }: Props) => {
                 registrationData={item}
                 moonpayTransactionStatus={moonpayTransactionStatus}
                 initiateMoonpayRegistrationMutation={initiateMoonpayRegistrationMutation}
+                linkRecords={linkRecords}
               />
             ))
             .with([false, false, 'profile'], () => (
@@ -374,6 +377,7 @@ const Registration = ({ nameDetails, isLoading }: Props) => {
                 registrationData={item}
                 onStart={onStart}
                 callback={transactionsCallback}
+                fromLink={!!linkRecords}
               />
             ))
             .with([false, false, 'complete'], () => (
