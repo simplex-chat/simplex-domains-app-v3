@@ -38,13 +38,6 @@ const controllerAbi = [
     type: 'function',
   },
   {
-    inputs: [{ name: 'hash', type: 'bytes32' }],
-    name: 'reservedNames',
-    outputs: [{ type: 'uint8' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
     inputs: [{ name: 'newMinCharLength', type: 'uint8' }],
     name: 'setMinCharLength',
     outputs: [],
@@ -56,6 +49,16 @@ const controllerAbi = [
     name: 'disableNftGate',
     outputs: [],
     stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const
+
+const namePolicyAbi = [
+  {
+    inputs: [{ name: 'hash', type: 'bytes32' }],
+    name: 'reservedNames',
+    outputs: [{ type: 'uint8' }],
+    stateMutability: 'view',
     type: 'function',
   },
   {
@@ -88,7 +91,7 @@ const controllerAbi = [
   },
 ] as const
 
-// SimplexController.Reason; each index is the value stored on chain, so entries are only appended.
+// SimplexNamePolicy.Reason; each index is the value stored on chain, so entries are only appended.
 const REASONS = ['None', 'Internal', 'Trademark', 'Community'] as const
 const REASON_OPTIONS = REASONS.map((label, value) => ({ value: String(value), label })).slice(1)
 const MIN_RESERVED_DAYS = MIN_REGISTRATION_DURATION / ONE_DAY
@@ -143,6 +146,9 @@ function AdminPanel() {
   // deployed at each address on the connected chain? — answered by the code check below.
   const deploymentAddresses = getSnrcAddresses(chainId)
   const controllerAddress = deploymentAddresses.ETHRegistrarController
+  const namePolicyAddress = deploymentAddresses.SimplexNamePolicy
+  const controller = { address: controllerAddress, abi: controllerAbi }
+  const namePolicy = { address: namePolicyAddress, abi: namePolicyAbi }
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
   const queryClient = useQueryClient()
@@ -225,13 +231,17 @@ function AdminPanel() {
 
   const isOwner = address && ownerAddress && getAddress(address) === getAddress(ownerAddress)
 
-  const execTx = async (functionName: string, args: any[]) => {
-    if (!walletClient || !controllerAddress) return
+  const execTx = async (
+    contract: typeof controller | typeof namePolicy,
+    functionName: string,
+    args: any[],
+  ) => {
+    if (!walletClient || !contract.address) return
     try {
       setStatus(`Sending ${functionName}...`)
       const hash = await walletClient.writeContract({
-        address: controllerAddress as `0x${string}`,
-        abi: controllerAbi,
+        address: contract.address as `0x${string}`,
+        abi: contract.abi as any,
         functionName: functionName as any,
         args: args as any,
       })
@@ -246,11 +256,11 @@ function AdminPanel() {
   }
 
   const checkReserved = async () => {
-    if (!publicClient || !controllerAddress || !checkName) return
+    if (!publicClient || !namePolicyAddress || !checkName) return
     try {
       const result = await publicClient.readContract({
-        address: controllerAddress as `0x${string}`,
-        abi: controllerAbi,
+        address: namePolicyAddress as `0x${string}`,
+        abi: namePolicyAbi,
         functionName: 'reservedNames',
         args: [keccak256(toBytes(checkName))],
       })
@@ -351,7 +361,7 @@ function AdminPanel() {
                 <Button
                   size="small"
                   data-testid="admin-set-min-char-button"
-                  onClick={() => execTx('setMinCharLength', [Number(newMinChar)])}
+                  onClick={() => execTx(controller, 'setMinCharLength', [Number(newMinChar)])}
                   disabled={!newMinChar}
                 >
                   Set
@@ -370,7 +380,7 @@ function AdminPanel() {
                 <Button
                   size="small"
                   colorStyle="redSecondary"
-                  onClick={() => execTx('disableNftGate', [])}
+                  onClick={() => execTx(controller, 'disableNftGate', [])}
                 >
                   Disable NFT Gate
                 </Button>
@@ -400,7 +410,9 @@ function AdminPanel() {
                 />
                 <Button
                   size="small"
-                  onClick={() => execTx('addReservedNames', [reserveLabels, Number(reserveReason)])}
+                  onClick={() =>
+                    execTx(namePolicy, 'addReservedNames', [reserveLabels, Number(reserveReason)])
+                  }
                   disabled={!reserveLabels.length || !!reserveNameError}
                 >
                   Reserve
@@ -417,7 +429,7 @@ function AdminPanel() {
                 />
                 <Button
                   size="small"
-                  onClick={() => execTx('removeReservedNames', [unReserveLabels])}
+                  onClick={() => execTx(namePolicy, 'removeReservedNames', [unReserveLabels])}
                   disabled={!unReserveLabels.length || !!unReserveNameError}
                 >
                   Unreserve
@@ -456,7 +468,7 @@ function AdminPanel() {
               <Button
                 size="small"
                 onClick={() =>
-                  execTx('registerReserved', [
+                  execTx(namePolicy, 'registerReserved', [
                     regLabel,
                     regOwner,
                     BigInt(Number(regDuration) * 86400),

@@ -134,9 +134,8 @@ export default function Page() {
   // makes them look registered. Show a yellow warning instead, matching
   // the home banner / min-chars helper style.
   //
-  // BUT: a name can be both reserved AND already registered (e.g. the
-  // admin reserved the label, then immediately registered it to a
-  // recipient via `registerReserved`). In that case the registered
+  // BUT: a name can be both reserved AND already registered (e.g. a held
+  // name reserved during a dispute). In that case the registered
   // profile must take precedence — the user owns the name and needs to
   // manage it. Same applies to too-short names that were registered
   // before the minCharLength gate was raised. Skip the warning when

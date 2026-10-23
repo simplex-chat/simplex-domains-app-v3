@@ -298,26 +298,26 @@ type CreateSearchHandlerProps = {
   nftGateBlocked: boolean
   onBlocked: (reason: BlockedReason) => void
   publicClient: ReturnType<typeof usePublicClient>
-  controllerAddress: Address | undefined
+  namePolicyAddress: Address | undefined
 }
 
 const reservedAbi = parseAbi(['function reservedNames(bytes32) view returns (uint8)'])
 
 const isLabelReserved = async (
   publicClient: ReturnType<typeof usePublicClient>,
-  controllerAddress: Address | undefined,
+  namePolicyAddress: Address | undefined,
   label: string,
 ): Promise<boolean> => {
-  if (!publicClient || !controllerAddress || !label) return false
+  if (!publicClient || !namePolicyAddress || !label) return false
   try {
     return !!(await publicClient.readContract({
-      address: controllerAddress,
+      address: namePolicyAddress,
       abi: reservedAbi,
       functionName: 'reservedNames',
       args: [keccak256(toBytes(label))],
     }))
   } catch {
-    // If the controller call fails (unconfigured chain, RPC blip, etc.) we
+    // If the name policy call fails (unconfigured chain, RPC blip, etc.) we
     // fall through to allow the navigation — the registration flow has its
     // own reserved-name banner as a second line of defence.
     return false
@@ -337,7 +337,7 @@ const createSearchHandler =
     nftGateBlocked,
     onBlocked,
     publicClient,
-    controllerAddress,
+    namePolicyAddress,
   }: CreateSearchHandlerProps): SearchHandler =>
   async (index: number) => {
     if (index === -1) return
@@ -359,7 +359,7 @@ const createSearchHandler =
       // Reserved beats NFT — a reserved name is unregistrable regardless of
       // who's connected, and the message should reflect that root cause.
       const label = text.split('.')[0]
-      const reserved = await isLabelReserved(publicClient, controllerAddress, label)
+      const reserved = await isLabelReserved(publicClient, namePolicyAddress, label)
       if (reserved) {
         setInputVal('')
         searchInputRef.current?.blur()
@@ -677,7 +677,7 @@ export const SearchInput = ({ size = 'extraLarge' }: { size?: 'medium' | 'extraL
   const { required: nftRequired, hasNft } = useNftGateStatus({ address })
   const nftGateBlocked = !!nftRequired && hasNft === false
   const publicClient = usePublicClient()
-  const controllerAddress = getSnrcAddresses(chainId).ETHRegistrarController as Address | undefined
+  const namePolicyAddress = getSnrcAddresses(chainId).SimplexNamePolicy as Address | undefined
   const [blockedReason, setBlockedReason] = useState<BlockedReason | null>(null)
   const handleBlocked = useCallback((reason: BlockedReason) => setBlockedReason(reason), [])
 
@@ -700,7 +700,7 @@ export const SearchInput = ({ size = 'extraLarge' }: { size?: 'medium' | 'extraL
       nftGateBlocked,
       onBlocked: handleBlocked,
       publicClient,
-      controllerAddress,
+      namePolicyAddress,
     }),
     [
       address,
@@ -714,7 +714,7 @@ export const SearchInput = ({ size = 'extraLarge' }: { size?: 'medium' | 'extraL
       nftGateBlocked,
       handleBlocked,
       publicClient,
-      controllerAddress,
+      namePolicyAddress,
     ],
   )
 
