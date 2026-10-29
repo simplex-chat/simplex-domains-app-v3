@@ -5,7 +5,7 @@ import { makeCommitment } from '@ensdomains/ensjs/utils'
 import { commitName as ensCommitName } from '@ensdomains/ensjs/wallet'
 
 import { ClientWithEns, ConnectorClientWithEns } from '@app/types'
-import { namePolicyBonaFideAbi } from '@app/utils/snrcBonaFide'
+import { namePolicyTermsAbi } from '@app/utils/snrcNameTerms'
 
 import commitName from './commitName'
 
@@ -37,15 +37,18 @@ describe('commitName', () => {
     expect(tx.to).toBe('0xcontroller')
   })
 
-  it('commits through the name policy with the accepted terms', async () => {
+  it.each([
+    ['general', 'commitUnderGeneralTerms'],
+    ['community', 'commitUnderCommunityTerms'],
+  ] as const)('commits through the name policy with the accepted %s terms', async (kind, call) => {
     const tx = await commitName.transaction({
       client,
       connectorClient,
-      data: { ...registration, bonaFideTermsHash: TERMS },
+      data: { ...registration, terms: { kind, hash: TERMS } },
     })
     expect(tx.to).toBe(NAME_POLICY)
-    expect(decodeFunctionData({ abi: namePolicyBonaFideAbi, data: tx.data })).toEqual({
-      functionName: 'commitUnderBonaFideCommunityTerms',
+    expect(decodeFunctionData({ abi: namePolicyTermsAbi, data: tx.data })).toEqual({
+      functionName: call,
       args: [makeCommitment(registration), TERMS],
     })
   })
@@ -53,10 +56,10 @@ describe('commitName', () => {
   it('shows the terms acceptance in the confirmation of a commit through the name policy', () => {
     const t = ((key: string) => key) as never
     expect(commitName.displayItems(registration, t)).not.toContainEqual(
-      expect.objectContaining({ value: 'transaction.description.acceptBonaFideTerms' }),
+      expect.objectContaining({ value: 'transaction.description.acceptTerms' }),
     )
     expect(
-      commitName.displayItems({ ...registration, bonaFideTermsHash: TERMS }, t),
-    ).toContainEqual({ label: 'action', value: 'transaction.description.acceptBonaFideTerms' })
+      commitName.displayItems({ ...registration, terms: { kind: 'general', hash: TERMS } }, t),
+    ).toContainEqual({ label: 'action', value: 'transaction.description.acceptTerms' })
   })
 })

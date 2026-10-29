@@ -1,7 +1,7 @@
 import { encodeFunctionData } from 'viem'
 import { describe, expect, it } from 'vitest'
 
-import { namePolicyBonaFideAbi } from '@app/utils/snrcBonaFide'
+import { namePolicyTermsAbi } from '@app/utils/snrcNameTerms'
 
 import { isPolicyCommit } from './isPolicyCommit'
 
@@ -10,25 +10,34 @@ const OTHER = '0x5555555555555555555555555555555555555555'
 const COMMITMENT = `0x${'cc'.repeat(32)}` as const
 const TERMS = `0x${'77'.repeat(32)}` as const
 
-const policyCommit = (commitment: `0x${string}`) =>
+const policyCommit = (
+  commitment: `0x${string}`,
+  functionName: 'commitUnderGeneralTerms' | 'commitUnderCommunityTerms' = 'commitUnderGeneralTerms',
+) =>
   encodeFunctionData({
-    abi: namePolicyBonaFideAbi,
-    functionName: 'commitUnderBonaFideCommunityTerms',
+    abi: namePolicyTermsAbi,
+    functionName,
     args: [commitment, TERMS],
   })
 const acceptForClaim = encodeFunctionData({
-  abi: namePolicyBonaFideAbi,
-  functionName: 'acceptBonaFideCommunityTermsForClaim',
+  abi: namePolicyTermsAbi,
+  functionName: 'acceptGeneralTermsForClaim',
   args: [1n, OTHER, 0n, TERMS],
 })
 const expected = { commitment: COMMITMENT, namePolicyAddress: NAME_POLICY } as const
 
 describe('isPolicyCommit', () => {
-  it('matches the commitment sent through the name policy', () => {
-    expect(isPolicyCommit({ to: NAME_POLICY, input: policyCommit(COMMITMENT) }, expected)).toBe(
-      true,
-    )
-  })
+  it.each(['commitUnderGeneralTerms', 'commitUnderCommunityTerms'] as const)(
+    'matches the commitment sent through the name policy by %s',
+    (functionName) => {
+      expect(
+        isPolicyCommit(
+          { to: NAME_POLICY, input: policyCommit(COMMITMENT, functionName) },
+          expected,
+        ),
+      ).toBe(true)
+    },
+  )
 
   it('returns false for another commitment, contract or call, a contract creation and no name policy', () => {
     const other = `0x${'dd'.repeat(32)}` as const

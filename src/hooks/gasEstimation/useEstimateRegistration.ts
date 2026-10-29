@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
+import { useChainId } from 'wagmi'
 
 import { RegistrationReducerDataItem } from '@app/components/pages/profile/[name]/registration/types'
+import { getNamePolicyAddress } from '@app/constants/chains'
 import { DISCONNECTED_PLACEHOLDER_ADDRESS } from '@app/utils/constants'
 import { deriveYearlyFee } from '@app/utils/utils'
 
@@ -23,6 +25,7 @@ export const useEstimateFullRegistration = ({
   name,
 }: UseEstimateFullRegistrationParameters) => {
   const { address } = useAccountSafely()
+  const chainId = useChainId()
   const { data: gasPrice, isLoading: gasPriceLoading } = useGasPrice()
 
   const registrationParams = useRegistrationParams({
@@ -56,7 +59,9 @@ export const useEstimateFullRegistration = ({
 
   const transactions = calculateTransactions({
     registrationParams,
+    terms: registrationData.terms,
     ethRegistrarControllerAddress,
+    namePolicyAddress: getNamePolicyAddress(chainId),
     fiveMinutesAgoInSeconds,
     price,
   })

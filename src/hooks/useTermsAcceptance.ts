@@ -1,10 +1,16 @@
 import { useState } from 'react'
-import { Hex } from 'viem'
 
-export const useTermsAcceptance = (termsHash?: Hex, initialAcceptedTermsHash?: Hex) => {
-  const [acceptedTermsHash, setAcceptedTermsHash] = useState(initialAcceptedTermsHash)
+import { Terms } from '@app/utils/snrcNameTerms'
+
+export const useTermsAcceptance = (
+  { kind, hash }: Partial<Terms>,
+  initialAcceptedTerms?: Terms,
+) => {
+  const [acceptedTerms, setAcceptedTerms] = useState(initialAcceptedTerms)
   return {
-    acceptedTermsHash: acceptedTermsHash === termsHash ? acceptedTermsHash : undefined,
-    setAccepted: (accepted: boolean) => setAcceptedTermsHash(accepted ? termsHash : undefined),
+    acceptedTerms:
+      acceptedTerms?.kind === kind && acceptedTerms?.hash === hash ? acceptedTerms : undefined,
+    setAccepted: (accepted: boolean) =>
+      setAcceptedTerms(accepted && kind && hash ? { kind, hash } : undefined),
   }
 }

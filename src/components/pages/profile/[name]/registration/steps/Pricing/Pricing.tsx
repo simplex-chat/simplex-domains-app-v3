@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { usePreviousDistinct } from 'react-use'
 import styled, { css } from 'styled-components'
 import { match, P } from 'ts-pattern'
-import type { Address, Hex } from 'viem'
+import type { Address } from 'viem'
 import { useAccountEffect, useBalance } from 'wagmi'
 import { GetBalanceData } from 'wagmi/query'
 
@@ -25,22 +25,23 @@ import { RegistrationTimeComparisonBanner } from '@app/components/@atoms/Registr
 import { Spacer } from '@app/components/@atoms/Spacer'
 import { ConnectButton } from '@app/components/@molecules/ConnectButton/ConnectButton'
 import { DateSelection } from '@app/components/@molecules/DateSelection/DateSelection'
-import { BonaFideTerms } from '@app/components/BonaFideTerms'
 import { Card } from '@app/components/Card'
+import { NameTerms } from '@app/components/NameTerms'
 import { SocialProfileButton } from '@app/components/pages/profile/ProfileButton'
 import { SimplexInfoPanel } from '@app/components/SimplexInfoPanel'
 import { ProfileRecord } from '@app/constants/profileRecordOptions'
 import { MAX_REGISTRATION_DURATION, MIN_REGISTRATION_DURATION } from '@app/constants/simplex'
-import { useControllerLimits } from '@app/hooks/useControllerLimits'
-import { useNftGateStatus } from '@app/hooks/useNftGateStatus'
-import { useReservedStatus } from '@app/hooks/useReservedStatus'
 import { useAccountSafely } from '@app/hooks/account/useAccountSafely'
 import { useContractAddress } from '@app/hooks/chain/useContractAddress'
 import { useEstimateFullRegistration } from '@app/hooks/gasEstimation/useEstimateRegistration'
-import { useBonaFideTerms } from '@app/hooks/useBonaFideTerms'
+import { useControllerLimits } from '@app/hooks/useControllerLimits'
 import { useEthPrice } from '@app/hooks/useEthPrice'
+import { useNameTerms } from '@app/hooks/useNameTerms'
+import { useNftGateStatus } from '@app/hooks/useNftGateStatus'
+import { useReservedStatus } from '@app/hooks/useReservedStatus'
 import { useTermsAcceptance } from '@app/hooks/useTermsAcceptance'
 import { useBreakpoint } from '@app/utils/BreakpointProvider'
+import { Terms } from '@app/utils/snrcNameTerms'
 
 import FullInvoice from '../../FullInvoice'
 import {
@@ -382,7 +383,7 @@ export type ActionButtonProps = {
   estimatedTotal?: bigint
   ethPrice?: bigint
   durationType: 'date' | 'years'
-  bonaFideTermsHash?: Hex
+  terms?: Terms
   autoNext?: boolean
 }
 
@@ -485,7 +486,7 @@ export const ActionButton = (props: ActionButtonProps) => {
         estimatedTotal,
         ethPrice,
         durationType,
-        bonaFideTermsHash,
+        terms,
         callback,
         autoNext,
       }) => {
@@ -497,7 +498,7 @@ export const ActionButton = (props: ActionButtonProps) => {
             estimatedTotal,
             ethPrice,
             durationType,
-            bonaFideTermsHash,
+            terms,
           })
         return autoNext && paymentMethodChoice ? (
           <AutoNextButton onNext={onNext} />
@@ -555,8 +556,8 @@ const Pricing = ({
   const { required: nftRequired, hasNft, loaded: nftLoaded } = useNftGateStatus({ address })
   const blockedByNftGate = nftRequired && hasNft === false
   const { isReserved, loaded: reservedLoaded } = useReservedStatus({ name })
-  const bonaFide = useBonaFideTerms({ name })
-  const acceptance = useTermsAcceptance(bonaFide.termsHash, registrationData.bonaFideTermsHash)
+  const terms = useNameTerms({ name })
+  const acceptance = useTermsAcceptance(terms, registrationData.terms)
   const { minCharLength } = useControllerLimits()
   const labelLen = name ? name.split('.')[0].length : 0
   // minCharLength is only enforced on top-level register(); subname creation
@@ -612,6 +613,7 @@ const Pricing = ({
       records: [{ key: 'ETH', value: resolverAddress, type: 'addr', group: 'address' }],
       clearRecords: resolverExists,
       resolverAddress,
+      terms: terms.kind && terms.hash && { kind: terms.kind, hash: terms.hash },
     },
   })
 
@@ -654,9 +656,10 @@ const Pricing = ({
       {linkRecords?.map(({ key, value }) => (
         <SocialProfileButton key={key} iconKey={key} normalisedKey={key} value={value!} />
       ))}
-      {bonaFide.isListed && <BonaFideTerms terms={bonaFide} acceptance={acceptance} />}
+      {terms.required && <NameTerms terms={terms} acceptance={acceptance} />}
       <DateSelection
-        {...{ seconds, setSeconds, minSeconds, maxSeconds, durationType }}
+        {...{ seconds, setSeconds, minSeconds, durationType }}
+        maxSeconds={terms.kind === 'community' ? minSeconds : maxSeconds}
         onChangeDurationType={setDurationType}
       />
       <FullInvoice {...fullEstimate} />
@@ -703,13 +706,13 @@ const Pricing = ({
           <Button data-testid="next-button" disabled>
             SimpleX NFT required
           </Button>
-        ) : bonaFide.isLoading || bonaFide.isFetching ? (
+        ) : terms.isLoading || terms.isFetching ? (
           <Button data-testid="next-button" disabled loading>
             {t('action.next', { ns: 'common' })}
           </Button>
-        ) : bonaFide.isListed && !acceptance.acceptedTermsHash ? (
+        ) : terms.required && !acceptance.acceptedTerms ? (
           <Button data-testid="next-button" disabled>
-            {bonaFide.hasTerms ? 'Accept the terms to continue' : 'Terms unavailable'}
+            {terms.text !== undefined ? 'Accept the terms to continue' : 'Terms unavailable'}
           </Button>
         ) : (
           <ActionButton
@@ -727,10 +730,10 @@ const Pricing = ({
               estimatedTotal,
               ethPrice,
               durationType,
-              bonaFideTermsHash: acceptance.acceptedTermsHash,
+              terms: acceptance.acceptedTerms,
               autoNext:
                 !!linkRecords &&
-                !bonaFide.isListed &&
+                !terms.required &&
                 hasConnected &&
                 reservedLoaded &&
                 nftLoaded &&

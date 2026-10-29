@@ -4,7 +4,8 @@ import { test } from '../../../playwright'
 
 /*
  * Registration from a link that carries the name and SimpleX links in the URL
- * fragment. Requires the .simplex stack: `SIMPLEX_TLD=simplex bash scripts/run-local.sh`.
+ * fragment. Requires the .simplex stack: `SIMPLEX_TLD=simplex bash scripts/run-local.sh`,
+ * which also serves the terms the pricing step shows.
  */
 const contact = 'https://smp16.simplex.im/a#Q_contact-key?h=smp.example.com'
 const channel = 'https://smp16.simplex.im/c#Q_channel-key'
@@ -14,7 +15,7 @@ const linkTo = (name: string) =>
     contact,
   )}&simplex.channel=${encodeURIComponent(channel)}`
 
-test('SNRC: a register link greets with its links, connecting goes on, then commit and reveal', async ({
+test('SNRC: a register link greets with its links and terms, accepting them goes on, then commit and reveal', async ({
   page,
   baseURL,
   login,
@@ -35,7 +36,7 @@ test('SNRC: a register link greets with its links, connecting goes on, then comm
   await time.sync()
   await page.goto(linkTo(name))
 
-  await test.step('greeting shows the name and the links before connecting', async () => {
+  await test.step('greeting shows the name, the links and the terms before connecting', async () => {
     await expect(page.getByRole('heading', { name: `Register ${name}` })).toBeVisible({
       timeout: 90000,
     })
@@ -47,11 +48,15 @@ test('SNRC: a register link greets with its links, connecting goes on, then comm
       'href',
       channel,
     )
+    await expect(page.getByTestId('terms-text')).toBeVisible({ timeout: 30000 })
+    await page.getByTestId('terms-accept').check()
     await expect(page.getByTestId('body-connect-button')).toBeVisible()
   })
 
-  await test.step('connecting the wallet goes on to the links, shown in full', async () => {
+  await test.step('connecting the wallet waits for Next, which goes on to the links', async () => {
     await login.connect()
+    await page.getByTestId('terms-accept').check({ timeout: 30000 })
+    await page.getByTestId('next-button').filter({ hasText: 'Next' }).click({ timeout: 30000 })
     await expect(page.getByTestId('multi-url-field-simplex.contact-input-0')).toHaveValue(contact, {
       timeout: 30000,
     })
@@ -110,7 +115,8 @@ test('SNRC: a register link opened with a connected wallet waits for Next', asyn
   await page.goto(linkTo(name))
 
   const nextButton = page.getByTestId('next-button').filter({ hasText: 'Next' })
-  await expect(nextButton).toBeEnabled({ timeout: 90000 })
+  await page.getByTestId('terms-accept').check({ timeout: 90000 })
+  await expect(nextButton).toBeEnabled({ timeout: 30000 })
   await nextButton.click()
   await expect(page.getByTestId('profile-submit-button')).toBeVisible()
 })
@@ -125,7 +131,9 @@ test('SNRC: edits made in the profile step outlive going back to the greeting', 
 
   await page.goto(linkTo(name))
   await login.connect()
-  await expect(channelInput).toHaveValue(channel, { timeout: 90000 })
+  await page.getByTestId('terms-accept').check({ timeout: 90000 })
+  await page.getByTestId('next-button').filter({ hasText: 'Next' }).click({ timeout: 30000 })
+  await expect(channelInput).toHaveValue(channel, { timeout: 30000 })
   await channelInput.fill(editedChannel)
   await page.getByTestId('profile-submit-button').click()
   await expect(page.getByTestId('next-button')).toHaveText('Begin')

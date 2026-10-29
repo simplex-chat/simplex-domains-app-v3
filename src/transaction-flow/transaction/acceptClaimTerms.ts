@@ -1,12 +1,12 @@
 import type { TFunction } from 'react-i18next'
-import { Address, encodeFunctionData, Hex } from 'viem'
+import { Address, encodeFunctionData } from 'viem'
 
 import { getNamePolicyAddress } from '@app/constants/chains'
 import { Transaction, TransactionDisplayItem, TransactionFunctionParameters } from '@app/types'
-import { namePolicyBonaFideAbi } from '@app/utils/snrcBonaFide'
+import { namePolicyTermsAbi, Terms } from '@app/utils/snrcNameTerms'
 import { getSnrcTokenId } from '@app/utils/snrcOffers'
 
-type Data = { name: string; holder: Address; offerNumber: bigint; termsHash: Hex }
+type Data = { name: string; holder: Address; offerNumber: bigint; terms: Terms }
 
 const displayItems = (
   { name }: Data,
@@ -19,16 +19,19 @@ const displayItems = (
   },
   {
     label: 'action',
-    value: t('transaction.description.acceptBonaFideClaimTerms'),
+    value: t('transaction.description.acceptClaimTerms'),
   },
 ]
 
 const transaction = ({ client, data }: TransactionFunctionParameters<Data>) => ({
   to: getNamePolicyAddress(client.chain.id)!,
   data: encodeFunctionData({
-    abi: namePolicyBonaFideAbi,
-    functionName: 'acceptBonaFideCommunityTermsForClaim',
-    args: [getSnrcTokenId(data.name)!, data.holder, data.offerNumber, data.termsHash],
+    abi: namePolicyTermsAbi,
+    functionName:
+      data.terms.kind === 'community'
+        ? 'acceptCommunityTermsForClaim'
+        : 'acceptGeneralTermsForClaim',
+    args: [getSnrcTokenId(data.name)!, data.holder, data.offerNumber, data.terms.hash],
   }),
 })
 

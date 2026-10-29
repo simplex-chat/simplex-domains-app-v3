@@ -1,6 +1,7 @@
 import { Address, Hex } from 'viem'
 
 import { ProfileRecord } from '@app/constants/profileRecordOptions'
+import { Terms } from '@app/utils/snrcNameTerms'
 
 export type RegistrationStep = 'pricing' | 'profile' | 'info' | 'transactions' | 'complete'
 
@@ -25,7 +26,7 @@ export type RegistrationStepData = {
     estimatedTotal?: bigint
     ethPrice?: bigint
     durationType: 'date' | 'years'
-    bonaFideTermsHash?: Hex
+    terms?: Terms
   }
   profile: {
     records: ProfileRecord[]

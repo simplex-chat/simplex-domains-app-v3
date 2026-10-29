@@ -11,7 +11,7 @@ import { useInvalidateOnBlock } from '@app/hooks/chain/useInvalidateOnBlock'
 import { useAddRecentTransaction } from '@app/hooks/transactions/useAddRecentTransaction'
 import { useIsSafeApp } from '@app/hooks/useIsSafeApp'
 import { useTransactionFlow } from '@app/transaction-flow/TransactionFlowProvider'
-import { namePolicyBonaFideAbi } from '@app/utils/snrcBonaFide'
+import { namePolicyTermsAbi } from '@app/utils/snrcNameTerms'
 
 import { useExistingCommitment } from '../useExistingCommitment'
 import { getBlockMetadataByTimestamp } from './getBlockMetadataByTimestamp'
@@ -342,7 +342,9 @@ describe('useExistingCommitment', () => {
   })
 
   describe('Commit through the name policy', () => {
-    it('finds the commitment sent through the name policy', async () => {
+    const policyCommits = ['commitUnderGeneralTerms', 'commitUnderCommunityTerms'] as const
+
+    it.each(policyCommits)('finds the commitment sent through %s', async (functionName) => {
       const setTransactionHashFromUpdate = vi.fn()
       mockUseTransactionFlow.mockReturnValue({ setTransactionHashFromUpdate })
       const client = {
@@ -364,8 +366,8 @@ describe('useExistingCommitment', () => {
         data: { hash: '0xblock' },
       } as any)
       const input = encodeFunctionData({
-        abi: namePolicyBonaFideAbi,
-        functionName: 'commitUnderBonaFideCommunityTerms',
+        abi: namePolicyTermsAbi,
+        functionName,
         args: [mockCommitment, `0x${'77'.repeat(32)}`],
       })
       mockGetBlock.mockResolvedValueOnce({

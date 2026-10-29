@@ -5,10 +5,10 @@ import styled, { css } from 'styled-components'
 import { Button, CheckboxRow, Dialog, Helper, Typography } from '@ensdomains/thorin'
 
 import { AvatarWithIdentifier } from '@app/components/@molecules/AvatarWithIdentifier/AvatarWithIdentifier'
-import { BonaFideTerms } from '@app/components/BonaFideTerms'
-import { useAcceptedClaimTerms, useBonaFideTerms } from '@app/hooks/useBonaFideTerms'
+import { NameTerms } from '@app/components/NameTerms'
 import { useClaimChecks } from '@app/hooks/useClaimChecks'
 import { useNameOffer } from '@app/hooks/useNameOffer'
+import { useAcceptedClaimTerms, useNameTerms } from '@app/hooks/useNameTerms'
 import { useTermsAcceptance } from '@app/hooks/useTermsAcceptance'
 import { DetailedSwitch } from '@app/transaction-flow/input/ProfileEditor/components/DetailedSwitch'
 import { createTransactionItem } from '@app/transaction-flow/transaction'
@@ -75,15 +75,15 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
   const { t } = useTranslation('transactionFlow')
   const offer = useNameOffer({ name })
   const checks = useClaimChecks({ name })
-  const bonaFide = useBonaFideTerms({ name })
+  const terms = useNameTerms({ name })
   const claimTerms = useAcceptedClaimTerms({
     name,
     holder: offer.data?.holder,
     offerNumber: offer.data?.offerNumber,
-    enabled: bonaFide.isListed,
+    enabled: terms.required,
   })
-  const needsTermsAcceptance = bonaFide.isListed && claimTerms.data !== bonaFide.termsHash
-  const acceptance = useTermsAcceptance(bonaFide.termsHash)
+  const needsTermsAcceptance = terms.required && (!terms.hash || claimTerms.data !== terms.hash)
+  const acceptance = useTermsAcceptance(terms)
   // The review stays as first read: a later change fails claimName's re-check instead of
   // replacing what the recipient is reading.
   const firstChecks = useRef(checks.data)
@@ -92,7 +92,7 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
   const [acceptedIncompleteReview, setAcceptedIncompleteReview] = useState<string>()
   const [clearRecords, setClearRecords] = useState(false)
 
-  if (offer.isLoading || checks.isLoading || bonaFide.isLoading || claimTerms.isLoading)
+  if (offer.isLoading || checks.isLoading || terms.isLoading || claimTerms.isLoading)
     return <TransactionLoader />
 
   const holder = !offer.isError && offer.data?.isRecipient ? offer.data.holder : undefined
@@ -114,13 +114,13 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
     dispatch({
       name: 'setTransactions',
       payload: [
-        ...(needsTermsAcceptance && acceptance.acceptedTermsHash
+        ...(needsTermsAcceptance && acceptance.acceptedTerms
           ? [
-              createTransactionItem('acceptBonaFideClaimTerms', {
+              createTransactionItem('acceptClaimTerms', {
                 name,
                 holder,
                 offerNumber: offer.data!.offerNumber,
-                termsHash: acceptance.acceptedTermsHash,
+                terms: acceptance.acceptedTerms,
               }),
             ]
           : []),
@@ -149,9 +149,7 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
           </Helper>
         )}
         <Typography>{t('input.claimName.description', { name })}</Typography>
-        {needsTermsAcceptance && holder && (
-          <BonaFideTerms terms={bonaFide} acceptance={acceptance} />
-        )}
+        {needsTermsAcceptance && holder && <NameTerms terms={terms} acceptance={acceptance} />}
 
         {review ? (
           <>
@@ -236,11 +234,11 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
             disabled={
               !acknowledged ||
               (!review?.complete && !acceptedIncomplete) ||
-              (needsTermsAcceptance && !acceptance.acceptedTermsHash) ||
+              (needsTermsAcceptance && !acceptance.acceptedTerms) ||
               checks.isFetching ||
               offer.isFetching ||
               claimTerms.isFetching ||
-              bonaFide.isFetching
+              terms.isFetching
             }
             onClick={onConfirm}
           >

@@ -2,22 +2,31 @@ import { Address, parseEther } from 'viem'
 
 import { makeCommitment, RegistrationParameters } from '@ensdomains/ensjs/utils'
 
+import { Terms } from '@app/utils/snrcNameTerms'
+
 import { useEstimateGasWithStateOverride } from '../chain/useEstimateGasWithStateOverride'
 
 type ReturnType = null | Parameters<typeof useEstimateGasWithStateOverride>[0]['transactions']
 
+const ACCEPTED_TERMS_SLOT = 103
+
 export const calculateTransactions = ({
   registrationParams,
+  terms,
   ethRegistrarControllerAddress,
+  namePolicyAddress,
   fiveMinutesAgoInSeconds,
   price,
 }: {
   registrationParams?: RegistrationParameters
+  terms?: Terms
   ethRegistrarControllerAddress: unknown
+  namePolicyAddress?: Address
   fiveMinutesAgoInSeconds: number
   price?: { base: bigint; premium: bigint }
 }): ReturnType => {
   if (!registrationParams || !ethRegistrarControllerAddress || !price) return null
+  const commitment = makeCommitment(registrationParams)
 
   // SimplexController is UUPS-upgradeable and inherits Initializable +
   // Ownable2StepUpgradeable + UUPSUpgradeable (all OZ v4.9.3). That stack
@@ -33,22 +42,38 @@ export const calculateTransactions = ({
     stateDiff: [
       {
         slot: 260,
-        keys: [makeCommitment(registrationParams)],
+        keys: [commitment],
         value: BigInt(fiveMinutesAgoInSeconds),
       },
     ],
   }
+  const termsStateOverride =
+    terms && namePolicyAddress
+      ? [
+          {
+            address: namePolicyAddress,
+            stateDiff: [
+              {
+                slot: ACCEPTED_TERMS_SLOT,
+                keys: [commitment, registrationParams.owner],
+                value: terms.hash,
+              },
+            ],
+          },
+        ]
+      : []
 
   return [
     {
       name: 'commitName',
-      data: registrationParams,
+      data: { ...registrationParams, terms },
     },
     {
       name: 'registerName',
       data: registrationParams,
       stateOverride: [
         registrationStateOverride,
+        ...termsStateOverride,
         {
           address: registrationParams.owner,
           balance: price ? (price.base + price.premium) * 2n + parseEther('1000000') : undefined,

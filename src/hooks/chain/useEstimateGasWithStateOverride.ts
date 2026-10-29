@@ -127,7 +127,7 @@ const calculateStorageValue = (value: UserStateValue['value']) => {
   return leftPadBytes32(value)
 }
 
-const mapUserState = (state: UserStateValue[]) =>
+export const mapUserState = (state: UserStateValue[]) =>
   Object.fromEntries(
     state.map(({ slot, keys, value }) => {
       const storageKey = keys.reduce(concatKey, leftPadBytes32(toHex(slot)))

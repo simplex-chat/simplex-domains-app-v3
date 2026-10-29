@@ -8,9 +8,9 @@ import { ProfileRecord } from '@app/constants/profileRecordOptions'
 import { useAccountSafely } from '@app/hooks/account/useAccountSafely'
 import { useContractAddress } from '@app/hooks/chain/useContractAddress'
 import { useEstimateFullRegistration } from '@app/hooks/gasEstimation/useEstimateRegistration'
-import { useBonaFideTerms } from '@app/hooks/useBonaFideTerms'
 import { useControllerLimits } from '@app/hooks/useControllerLimits'
 import { useEthPrice } from '@app/hooks/useEthPrice'
+import { useNameTerms } from '@app/hooks/useNameTerms'
 import { useNftGateStatus } from '@app/hooks/useNftGateStatus'
 import { useReservedStatus } from '@app/hooks/useReservedStatus'
 import { yearsToSeconds } from '@app/utils/utils'
@@ -22,14 +22,14 @@ vi.mock('wagmi')
 vi.mock('@app/hooks/account/useAccountSafely')
 vi.mock('@app/hooks/chain/useContractAddress')
 vi.mock('@app/hooks/gasEstimation/useEstimateRegistration')
-vi.mock('@app/hooks/useBonaFideTerms')
 vi.mock('@app/hooks/useControllerLimits')
 vi.mock('@app/hooks/useEthPrice')
+vi.mock('@app/hooks/useNameTerms')
 vi.mock('@app/hooks/useNftGateStatus')
 vi.mock('@app/hooks/useReservedStatus')
 vi.mock('@app/components/SimplexInfoPanel', () => ({ SimplexInfoPanel: () => null }))
 vi.mock('@app/components/@molecules/DateSelection/DateSelection', () => ({
-  DateSelection: () => null,
+  DateSelection: ({ maxSeconds }: { maxSeconds: number }) => <div>{maxSeconds}</div>,
 }))
 vi.mock('@app/components/pages/profile/ProfileButton', () => ({
   SocialProfileButton: ({ value }: { value: string }) => <div>{value}</div>,
@@ -41,9 +41,9 @@ const mockUseAccountEffect = mockFunction(useAccountEffect)
 const mockUseBalance = mockFunction(useBalance)
 const mockUseContractAddress = mockFunction(useContractAddress)
 const mockUseEstimateFullRegistration = mockFunction(useEstimateFullRegistration)
-const mockUseBonaFideTerms = mockFunction(useBonaFideTerms)
 const mockUseControllerLimits = mockFunction(useControllerLimits)
 const mockUseEthPrice = mockFunction(useEthPrice)
+const mockUseNameTerms = mockFunction(useNameTerms)
 const mockUseNftGateStatus = mockFunction(useNftGateStatus)
 const mockUseReservedStatus = mockFunction(useReservedStatus)
 
@@ -152,15 +152,32 @@ describe('Pricing', () => {
     mockUseEthPrice.mockReturnValue({ data: 1n })
     mockUseNftGateStatus.mockReturnValue({ required: false, hasNft: undefined, loaded: true })
     mockUseReservedStatus.mockReturnValue({ isReserved: false, loaded: true })
-    mockUseBonaFideTerms.mockReturnValue({
-      isListed: false,
-      termsHash: undefined,
+    mockUseNameTerms.mockReturnValue({
+      required: false,
+      kind: undefined,
+      hash: undefined,
       text: undefined,
-      hasTerms: false,
       isLoading: false,
       isFetching: false,
+      isError: false,
     })
   }
+
+  const TERMS = `0x${'11'.repeat(32)}` as const
+  const nameTerms = (
+    kind: 'general' | 'community',
+    state: Partial<ReturnType<typeof useNameTerms>> = {},
+  ) =>
+    mockUseNameTerms.mockReturnValue({
+      required: true,
+      kind,
+      hash: TERMS,
+      text: '# Terms',
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      ...state,
+    })
 
   const makeProps = (overrides: Partial<PricingProps> = {}): PricingProps => ({
     name: 'alicebob.simplex',
@@ -215,21 +232,50 @@ describe('Pricing', () => {
     expect(props.callback).not.toHaveBeenCalled()
   })
 
-  it('should wait for Next on a community name once its terms are accepted', async () => {
-    mockUseBonaFideTerms.mockReturnValue({
-      isListed: true,
-      termsHash: `0x${'11'.repeat(32)}`,
-      text: '# Terms',
-      hasTerms: true,
-      isLoading: false,
-      isFetching: false,
-    })
+  it('should offer a community name for two years only', () => {
+    nameTerms('general')
+    const { rerender } = render(<Pricing {...makeProps()} />)
+    expect(screen.getByText(yearsToSeconds(3))).toBeInTheDocument()
+    nameTerms('community')
+    rerender(<Pricing {...makeProps()} />)
+    expect(screen.getByText(yearsToSeconds(2))).toBeInTheDocument()
+  })
+
+  it.each(['general', 'community'] as const)(
+    'should wait for Next once the %s terms are accepted, and pass them on',
+    async (kind) => {
+      nameTerms(kind)
+      const props = makeProps()
+      render(<Pricing {...props} />)
+      connect(false)
+      expect(screen.getByTestId('next-button')).toBeDisabled()
+      await userEvent.click(screen.getByTestId('terms-accept'))
+      expect(props.callback).not.toHaveBeenCalled()
+      await userEvent.click(screen.getByTestId('next-button'))
+      expect(props.callback).toHaveBeenCalledWith(
+        expect.objectContaining({ terms: { kind, hash: TERMS } }),
+      )
+    },
+  )
+
+  it('should not go on while the listing or the terms cannot be read', () => {
+    nameTerms('general', { kind: undefined, hash: undefined, text: undefined, isError: true })
     const props = makeProps()
     render(<Pricing {...props} />)
     connect(false)
-    await userEvent.click(screen.getByTestId('bona-fide-terms-accept'))
+    expect(screen.getByTestId('terms-load-failed')).toBeVisible()
+    expect(screen.getByTestId('next-button')).toBeDisabled()
+    expect(screen.getByTestId('next-button')).toHaveTextContent('Terms unavailable')
     expect(props.callback).not.toHaveBeenCalled()
-    expect(screen.getByTestId('next-button')).toBeEnabled()
+  })
+
+  it("should say names can't be registered now while the general terms are not set", () => {
+    nameTerms('general', { hash: undefined, text: undefined })
+    render(<Pricing {...makeProps()} />)
+    expect(screen.getByTestId('terms-unset')).toHaveTextContent(
+      "names can't be registered or received now",
+    )
+    expect(screen.getByTestId('next-button')).toBeDisabled()
   })
 
   it.each([
