@@ -10,6 +10,7 @@ import { useQuery } from '@app/utils/query/useQuery'
 
 import {
   getAcceptedClaimTermsQueryFn,
+  getAcceptedRenewalTermsQueryFn,
   getCommittedTermsQueryFn,
   getNameTermsQueryFn,
   getTermsTextQueryFn,
@@ -368,6 +369,38 @@ describe('getAcceptedClaimTermsQueryFn', () => {
     expect(await getAcceptedClaimTerms(undefined, RECIPIENT, 3n)).toBeNull()
     expect(await getAcceptedClaimTerms(HOLDER, undefined, 3n)).toBeNull()
     expect(await getAcceptedClaimTerms(HOLDER, RECIPIENT)).toBeNull()
+    expect(mockReadContract).not.toHaveBeenCalled()
+  })
+})
+
+describe('getAcceptedRenewalTermsQueryFn', () => {
+  const getAcceptedRenewalTerms = (holder?: `0x${string}`, expires?: bigint) =>
+    getAcceptedRenewalTermsQueryFn(config)({
+      queryKey: [
+        { name: 'alice.testing', expires, duration: 31_536_000 },
+        1337,
+        holder,
+        undefined,
+        'getAcceptedRenewalTerms',
+      ],
+    } as never)
+
+  it("reads the holder's acceptance for a renewal from the current expiry", async () => {
+    mockReadContract.mockResolvedValueOnce(TERMS)
+    expect(await getAcceptedRenewalTerms(HOLDER, 2_000_000_000n)).toBe(TERMS)
+    expect(mockReadContract).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        address: NAME_POLICY,
+        functionName: 'acceptedRenewalTerms',
+        args: [BigInt(labelhash('alice')), HOLDER, 2_000_000_000n, 31_536_000n],
+      }),
+    )
+  })
+
+  it('reads nothing without a connected holder or an expiry', async () => {
+    expect(await getAcceptedRenewalTerms(undefined, 2_000_000_000n)).toBeNull()
+    expect(await getAcceptedRenewalTerms(HOLDER)).toBeNull()
     expect(mockReadContract).not.toHaveBeenCalled()
   })
 })

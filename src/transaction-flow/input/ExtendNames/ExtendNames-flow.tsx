@@ -25,7 +25,7 @@ import { acceptedRenewalTermsOverride } from '@app/hooks/gasEstimation/calculate
 import { useDisputeEnd, type DisputeEnd } from '@app/hooks/useDisputeEnd'
 import { useEnsAvatar } from '@app/hooks/useEnsAvatar'
 import { useEthPrice } from '@app/hooks/useEthPrice'
-import { useNameTerms } from '@app/hooks/useNameTerms'
+import { useAcceptedRenewalTerms, useNameTerms } from '@app/hooks/useNameTerms'
 import { useReferrer } from '@app/hooks/useReferrer'
 import { useReservedNames } from '@app/hooks/useReservedStatus'
 import { useTermsAcceptance } from '@app/hooks/useTermsAcceptance'
@@ -37,6 +37,7 @@ import { getReferrerHex } from '@app/utils/referrer'
 import { ONE_YEAR, secondsToYears, yearsToSeconds } from '@app/utils/time'
 import useUserConfig from '@app/utils/useUserConfig'
 import {
+  calculateValueWithBuffer,
   deriveYearlyFee,
   formatDurationOfDates,
   formatExpiry,
@@ -248,7 +249,11 @@ const ExtendNames = ({
   const isShowingPreviousYearlyFee = yearlyFee === 0n && previousYearlyFee > 0n
 
   const isExpiryEnabled = names.length === 1
-  const { data: expiryData, isLoading: isExpiryLoading } = useExpiry({
+  const {
+    data: expiryData,
+    isLoading: isExpiryLoading,
+    isFetching: isExpiryFetching,
+  } = useExpiry({
     enabled: isExpiryEnabled,
     name: names[0],
   })
@@ -278,6 +283,13 @@ const ExtendNames = ({
 
   const terms = useNameTerms({ name: names[0] })
   const acceptance = useTermsAcceptance(terms)
+  const renewalTerms = useAcceptedRenewalTerms({
+    name: names[0],
+    expires: expiryData?.expiry.value,
+    duration: seconds,
+    enabled: terms.required,
+  })
+  const needsTermsAcceptance = terms.required && (!terms.hash || renewalTerms.data !== terms.hash)
   const renewal =
     expiryData && terms.kind && terms.hash
       ? {
@@ -290,13 +302,15 @@ const ExtendNames = ({
   const acceptedRenewal = acceptance.acceptedTerms && renewal
 
   const {
-    data: { gasEstimate: estimatedGasLimit, gasCost: transactionFee },
+    data: { gasCost: transactionFee },
     error: estimateGasLimitError,
     isLoading: isEstimateGasLoading,
     gasPrice,
   } = useEstimateGasWithStateOverride({
     transactions: [
-      ...(renewal ? [{ name: 'acceptRenewalTerms', data: renewal } as const] : []),
+      ...(needsTermsAcceptance && renewal
+        ? [{ name: 'acceptRenewalTerms', data: renewal } as const]
+        : []),
       {
         name: 'extendNames',
         data: {
@@ -335,6 +349,8 @@ const ExtendNames = ({
   })
 
   const previousTransactionFee = usePreviousDistinct(transactionFee) || 0n
+  const isBalanceShort =
+    !!balance && balance.value < calculateValueWithBuffer(totalRentFee) + transactionFee
 
   const isShowingPreviousTransactionFee = transactionFee === 0n && previousTransactionFee > 0n
 
@@ -408,8 +424,11 @@ const ExtendNames = ({
           isReservedLoading ||
           disputeEnd.status === 'loading' ||
           !!restriction ||
-          (terms.required && !acceptedRenewal) ||
-          terms.isFetching,
+          (needsTermsAcceptance && !acceptedRenewal) ||
+          terms.isFetching ||
+          renewalTerms.isFetching ||
+          isExpiryFetching ||
+          isBalanceShort,
         onClick: () => {
           if (!priceData) return
           const transactions = createTransactionItem('extendNames', {
@@ -428,7 +447,7 @@ const ExtendNames = ({
           dispatch({
             name: 'setTransactions',
             payload: [
-              ...(acceptedRenewal
+              ...(needsTermsAcceptance && acceptedRenewal
                 ? [createTransactionItem('acceptRenewalTerms', acceptedRenewal)]
                 : []),
               transactions,
@@ -480,7 +499,7 @@ const ExtendNames = ({
           ))
           .otherwise(() => (
             <>
-              {terms.required && <NameTerms terms={terms} acceptance={acceptance} />}
+              {needsTermsAcceptance && <NameTerms terms={terms} acceptance={acceptance} />}
               <PlusMinusWrapper>
                 {names.length === 1 ? (
                   <DateSelection
@@ -521,10 +540,7 @@ const ExtendNames = ({
                 }
               >
                 <Invoice items={items} unit={currencyDisplay} totalLabel="Estimated total" />
-                {(!!estimateGasLimitError ||
-                  (!!estimatedGasLimit &&
-                    !!balance?.value &&
-                    balance.value < estimatedGasLimit)) && (
+                {(!!estimateGasLimitError || isBalanceShort) && (
                   <Helper alert="warning">{t('input.extendNames.gasLimitError')}</Helper>
                 )}
               </GasEstimationCacheableComponent>

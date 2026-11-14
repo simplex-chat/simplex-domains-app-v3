@@ -219,3 +219,47 @@ export const useAcceptedClaimTerms = ({
     queryOptions({ queryKey: initialOptions.queryKey, queryFn: initialOptions.queryFn, enabled }),
   )
 }
+
+type AcceptedRenewalTermsQueryKey = CreateQueryKey<
+  { name: string; expires?: bigint; duration: number },
+  'getAcceptedRenewalTerms',
+  'standard'
+>
+
+export const getAcceptedRenewalTermsQueryFn =
+  (config: ConfigWithEns) =>
+  async ({
+    queryKey: [{ name, expires, duration }, chainId, holder],
+  }: QueryFunctionContext<AcceptedRenewalTermsQueryKey>) => {
+    const namePolicyAddress = getNamePolicyAddress(chainId)
+    const tokenId = getSnrcTokenId(name)
+    if (!namePolicyAddress || tokenId === undefined || expires === undefined || !holder) return null
+    return readContract(config.getClient({ chainId }), {
+      address: namePolicyAddress,
+      abi: namePolicyTermsAbi,
+      functionName: 'acceptedRenewalTerms',
+      args: [tokenId, holder, expires, BigInt(duration)],
+    })
+  }
+
+export const useAcceptedRenewalTerms = ({
+  name,
+  expires,
+  duration,
+  enabled,
+}: {
+  name: string
+  expires?: bigint
+  duration: number
+  enabled: boolean
+}) => {
+  const initialOptions = useQueryOptions({
+    params: { name, expires, duration },
+    functionName: 'getAcceptedRenewalTerms',
+    queryDependencyType: 'standard',
+    queryFn: getAcceptedRenewalTermsQueryFn,
+  })
+  return useQuery(
+    queryOptions({ queryKey: initialOptions.queryKey, queryFn: initialOptions.queryFn, enabled }),
+  )
+}

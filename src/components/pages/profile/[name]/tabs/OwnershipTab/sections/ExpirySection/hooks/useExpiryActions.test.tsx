@@ -1,14 +1,17 @@
 import { mockFunction, renderHook } from '@app/test-utils'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { useAccount } from 'wagmi'
 
 import { useIsNameHolder } from '@app/hooks/useIsNameHolder'
 import { useTransactionFlow } from '@app/transaction-flow/TransactionFlowProvider'
 
 import { useExpiryActions } from './useExpiryActions'
 
+vi.mock('wagmi')
 vi.mock('@app/hooks/useIsNameHolder')
 vi.mock('@app/transaction-flow/TransactionFlowProvider')
+const mockUseAccount = mockFunction(useAccount)
 const mockUseIsNameHolder = mockFunction(useIsNameHolder)
 const mockUseTransactionFlow = mockFunction(useTransactionFlow)
 const mockShowExtendNamesInput = vi.fn()
@@ -25,6 +28,7 @@ vi.mock('@app/hooks/abilities/useAbilities', () => ({
 describe('useExpiryActions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUseAccount.mockReturnValue({ address: '0x123', isConnected: true })
     mockUseIsNameHolder.mockReturnValue({ data: true })
     mockUseTransactionFlow.mockReturnValue({
       usePreparedDataInput: () => mockShowExtendNamesInput,
@@ -43,7 +47,7 @@ describe('useExpiryActions', () => {
     )
   })
 
-  it('should not show extend action if the wallet does not hold the name', () => {
+  it('should not show extend action if the connected wallet does not hold the name', () => {
     mockUseIsNameHolder.mockReturnValue({ data: false })
     const { result } = renderHook(() =>
       useExpiryActions({
