@@ -1,5 +1,6 @@
 import { mockFunction, render, screen, userEvent } from '@app/test-utils'
 
+import { parseEther } from 'viem'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAccount, useBalance } from 'wagmi'
 
@@ -95,7 +96,7 @@ describe('Extendnames', () => {
     isLoading: false,
   })
   mockUseAccount.mockReturnValue({ address: '0x1234', isConnected: true })
-  mockUseBalance.mockReturnValue({ data: { balance: 100n }, isLoading: false })
+  mockUseBalance.mockReturnValue({ data: { value: parseEther('1') }, isLoading: false })
   mockUseEthPrice.mockReturnValue({ data: 100n, isLoading: false })
   mockUseExpiry.mockReturnValue({ data: { expiry: { date: new Date() } }, isLoading: false })
   mockUseBlockTimestamp.mockReturnValue({ data: undefined })
@@ -167,7 +168,7 @@ describe('Extendnames', () => {
     mockUseDisputeEnd.mockReturnValue({ status: 'none', isFetching: false })
     mockUseNameTerms.mockReturnValue(nameTerms())
     mockUseAcceptedRenewalTerms.mockReturnValue({ data: undefined, isFetching: false })
-    mockUseBalance.mockReturnValue({ data: { balance: 100n }, isLoading: false })
+    mockUseBalance.mockReturnValue({ data: { value: parseEther('1') }, isLoading: false })
   })
   it('should disable extending while the name is paid up close to three years ahead', () => {
     mockExpiryAhead(MAX_REGISTRATION_DURATION)
@@ -449,6 +450,34 @@ describe('Extendnames', () => {
       name: 'setTransactions',
       payload: [{ name: 'extendNames', data: expect.objectContaining({ duration: ONE_YEAR }) }],
     })
+  })
+  it('should not extend while the expiry, the terms or the stored acceptance are refetched', () => {
+    const expires = mockExpiryAhead(ONE_YEAR)
+    const expiry = {
+      data: { expiry: { date: new Date(Number(expires) * 1000), value: expires } },
+      isLoading: false,
+    }
+    const terms = nameTerms({ required: true, kind: 'general', hash: TERMS, text: 'the terms' })
+    for (const [expiryState, termsState, renewalTermsState] of [
+      [{ ...expiry, isFetching: true }, terms, { data: TERMS, isFetching: false }],
+      [expiry, { ...terms, isFetching: true }, { data: TERMS, isFetching: false }],
+      [expiry, terms, { data: TERMS, isFetching: true }],
+    ] as const) {
+      mockUseExpiry.mockReturnValue(expiryState)
+      mockUseNameTerms.mockReturnValue(termsState)
+      mockUseAcceptedRenewalTerms.mockReturnValue(renewalTermsState)
+      const { unmount } = render(
+        <ExtendNames
+          {...{
+            data: { names: ['nick.testing'], isSelf: true, hasWrapped: false },
+            dispatch: () => null,
+            onDismiss: () => null,
+          }}
+        />,
+      )
+      expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
+      unmount()
+    }
   })
   it('should not extend before the wallet can pay the renewal and its gas', () => {
     for (const [value, disabled] of [
