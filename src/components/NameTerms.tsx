@@ -94,16 +94,19 @@ export const TermsText = ({
 const KIND_TEXTS = {
   general: {
     title: 'SimpleX general terms',
-    description: 'Registering or receiving this name requires accepting the SimpleX general terms.',
+    description:
+      'Registering, receiving or renewing this name requires accepting the SimpleX general terms.',
     accept: 'I accept the SimpleX general terms',
-    unset: "The general terms are not available, so names can't be registered or received now.",
+    unset:
+      "The general terms are not available, so names can't be registered, received or renewed now.",
   },
   community: {
     title: 'Community name',
-    description: 'Registering or receiving this name requires accepting the community terms.',
+    description:
+      'Registering, receiving or renewing this name requires accepting the community terms.',
     accept: 'I accept the community terms',
     unset:
-      "The community terms are not available, so this name can't be registered or received now.",
+      "The community terms are not available, so this name can't be registered, received or renewed now.",
   },
 }
 

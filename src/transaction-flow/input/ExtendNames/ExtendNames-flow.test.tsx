@@ -1,15 +1,18 @@
-import { mockFunction, render, screen } from '@app/test-utils'
+import { mockFunction, render, screen, userEvent } from '@app/test-utils'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAccount, useBalance } from 'wagmi'
 
+import { getNamePolicyAddress } from '@app/constants/chains'
 import { MAX_REGISTRATION_DURATION } from '@app/constants/simplex'
 import { useBlockTimestamp } from '@app/hooks/chain/useBlockTimestamp'
 import { useEstimateGasWithStateOverride } from '@app/hooks/chain/useEstimateGasWithStateOverride'
 import { useExpiry } from '@app/hooks/ensjs/public/useExpiry'
 import { usePrice } from '@app/hooks/ensjs/public/usePrice'
+import { acceptedRenewalTermsOverride } from '@app/hooks/gasEstimation/calculateTransactions'
 import { useDisputeEnd } from '@app/hooks/useDisputeEnd'
 import { useEthPrice } from '@app/hooks/useEthPrice'
+import { useNameTerms } from '@app/hooks/useNameTerms'
 import { useReferrer } from '@app/hooks/useReferrer'
 import { useReservedNames } from '@app/hooks/useReservedStatus'
 import { ONE_DAY, ONE_YEAR } from '@app/utils/time'
@@ -23,6 +26,7 @@ vi.mock('@app/hooks/ensjs/public/usePrice')
 vi.mock('wagmi')
 vi.mock('@app/hooks/ensjs/public/useExpiry')
 vi.mock('@app/hooks/useEthPrice')
+vi.mock('@app/hooks/useNameTerms')
 vi.mock('@app/hooks/useReferrer')
 vi.mock('@app/hooks/useReservedStatus')
 vi.mock('@app/hooks/useDisputeEnd')
@@ -34,9 +38,25 @@ const mockUseAccount = mockFunction(useAccount)
 const mockUseBalance = mockFunction(useBalance)
 const mockUseEthPrice = mockFunction(useEthPrice)
 const mockUseExpiry = mockFunction(useExpiry)
+const mockUseNameTerms = mockFunction(useNameTerms)
 const mockUseReferrer = mockFunction(useReferrer)
 const mockUseReservedNames = mockFunction(useReservedNames)
 const mockUseDisputeEnd = mockFunction(useDisputeEnd)
+
+const TERMS = `0x${'77'.repeat(32)}` as const
+
+const nameTerms = (state: Partial<ReturnType<typeof useNameTerms>> = {}) => ({
+  required: false,
+  kind: undefined,
+  hash: undefined,
+  readerUrl: undefined,
+  text: undefined,
+  isLoading: false,
+  isFetching: false,
+  isError: false,
+  retry: () => {},
+  ...state,
+})
 
 vi.mock('@ensdomains/thorin', async () => {
   const originalModule = await vi.importActual('@ensdomains/thorin')
@@ -77,6 +97,7 @@ describe('Extendnames', () => {
   mockUseReferrer.mockReturnValue(undefined)
   mockUseReservedNames.mockReturnValue({ reservedNames: [], isLoading: false })
   mockUseDisputeEnd.mockReturnValue({ status: 'none', isFetching: false })
+  mockUseNameTerms.mockReturnValue(nameTerms())
   it('should render', async () => {
     render(
       <ExtendNames
@@ -132,11 +153,13 @@ describe('Extendnames', () => {
       data: { expiry: { date: new Date(expiry * 1000), value: BigInt(expiry) } },
       isLoading: false,
     })
+    return BigInt(expiry)
   }
   afterEach(() => {
     mockUseExpiry.mockReturnValue({ data: { expiry: { date: new Date() } }, isLoading: false })
     mockUseBlockTimestamp.mockReturnValue({ data: undefined })
     mockUseDisputeEnd.mockReturnValue({ status: 'none', isFetching: false })
+    mockUseNameTerms.mockReturnValue(nameTerms())
   })
   it('should disable extending while the name is paid up close to three years ahead', () => {
     mockExpiryAhead(MAX_REGISTRATION_DURATION)
@@ -286,5 +309,106 @@ describe('Extendnames', () => {
     )
     expect(screen.getByTestId('extend-names-dispute-period')).toBeVisible()
     expect(screen.queryByTestId('extend-names-too-early')).not.toBeInTheDocument()
+  })
+  it.each(['general', 'community'] as const)(
+    'should accept the shown %s terms for this renewal before extending',
+    async (kind) => {
+      const expires = mockExpiryAhead(ONE_YEAR)
+      mockUseNameTerms.mockReturnValue(
+        nameTerms({ required: true, kind, hash: TERMS, text: 'the terms' }),
+      )
+      const dispatch = vi.fn()
+      render(
+        <ExtendNames
+          {...{
+            data: { names: ['nick.testing'], isSelf: true, hasWrapped: false },
+            dispatch,
+            onDismiss: () => null,
+          }}
+        />,
+      )
+      expect(screen.getByTestId('terms-text')).toHaveTextContent('the terms')
+      expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
+
+      await userEvent.click(screen.getByTestId('terms-accept'))
+      await userEvent.click(screen.getByTestId('extend-names-confirm'))
+
+      expect(dispatch).toHaveBeenCalledWith({
+        name: 'setTransactions',
+        payload: [
+          {
+            name: 'acceptRenewalTerms',
+            data: {
+              name: 'nick.testing',
+              expires,
+              duration: ONE_YEAR,
+              terms: { kind, hash: TERMS },
+            },
+          },
+          {
+            name: 'extendNames',
+            data: expect.objectContaining({ names: ['nick.testing'], duration: ONE_YEAR }),
+          },
+        ],
+      })
+    },
+  )
+  it('should estimate the renewal with its acceptance in effect', () => {
+    const expires = mockExpiryAhead(ONE_YEAR)
+    mockUseNameTerms.mockReturnValue(
+      nameTerms({ required: true, kind: 'general', hash: TERMS, text: 'the terms' }),
+    )
+    render(
+      <ExtendNames
+        {...{
+          data: { names: ['nick.testing'], isSelf: true, hasWrapped: false },
+          dispatch: () => null,
+          onDismiss: () => null,
+        }}
+      />,
+    )
+    const renewal = {
+      name: 'nick.testing',
+      expires,
+      duration: ONE_YEAR,
+      terms: { kind: 'general', hash: TERMS },
+    } as const
+    expect(mockUseEstimateGasWithStateOverride).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        enabled: true,
+        transactions: [
+          { name: 'acceptRenewalTerms', data: renewal },
+          expect.objectContaining({
+            name: 'extendNames',
+            stateOverride: [
+              expect.objectContaining({ address: '0x1234' }),
+              acceptedRenewalTermsOverride({
+                namePolicyAddress: getNamePolicyAddress(undefined)!,
+                holder: '0x1234',
+                renewal,
+              }),
+            ],
+          }),
+        ],
+      }),
+    )
+  })
+  it('should neither estimate nor extend while the terms cannot be accepted', () => {
+    mockExpiryAhead(ONE_YEAR)
+    mockUseNameTerms.mockReturnValue(nameTerms({ required: true, kind: 'general' }))
+    render(
+      <ExtendNames
+        {...{
+          data: { names: ['nick.testing'], isSelf: true, hasWrapped: false },
+          dispatch: () => null,
+          onDismiss: () => null,
+        }}
+      />,
+    )
+    expect(screen.getByTestId('terms-unset')).toBeVisible()
+    expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
+    expect(mockUseEstimateGasWithStateOverride).toHaveBeenLastCalledWith(
+      expect.objectContaining({ enabled: false }),
+    )
   })
 })

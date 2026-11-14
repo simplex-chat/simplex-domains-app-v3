@@ -224,6 +224,7 @@
       "commitName": "Start timer",
       "acceptTerms": "Accept terms",
       "acceptClaimTerms": "Accept terms",
+      "acceptRenewalTerms": "Accept terms",
       "registerName": "Register name",
       "approveNameWrapper": "Approve NameWrapper",
       "approveSubnameRegistrar": "Approve subname registrar",

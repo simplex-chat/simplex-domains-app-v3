@@ -86,6 +86,8 @@ const snrcErrors = parseAbi([
   'error TermsMismatch(bytes32 accepted, bytes32 current)',
   'error TermsNotAccepted(string name)',
   'error DisputePeriodNotOver(uint256 id)',
+  'error NotHolder(string name)',
+  'error ExpiryMismatch(uint256 named, uint256 current)',
 ])
 
 export const allContractErrors = [

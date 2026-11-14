@@ -288,7 +288,7 @@ describe('Pricing', () => {
     nameTerms('general', { hash: undefined, text: undefined })
     render(<Pricing {...makeProps()} />)
     expect(screen.getByTestId('terms-unset')).toHaveTextContent(
-      "names can't be registered or received now",
+      "names can't be registered, received or renewed now",
     )
     expect(screen.getByTestId('next-button')).toBeDisabled()
   })

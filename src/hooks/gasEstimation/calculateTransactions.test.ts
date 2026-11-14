@@ -1,10 +1,10 @@
-import { encodeAbiParameters, keccak256, pad, toHex } from 'viem'
+import { encodeAbiParameters, keccak256, labelhash, pad, toHex } from 'viem'
 import { describe, expect, it } from 'vitest'
 
 import { makeCommitment } from '@ensdomains/ensjs/utils'
 
 import { mapUserState } from '../chain/useEstimateGasWithStateOverride'
-import { calculateTransactions } from './calculateTransactions'
+import { acceptedRenewalTermsOverride, calculateTransactions } from './calculateTransactions'
 
 // Minimal RegistrationParameters fixture — only the fields makeCommitment
 // reads matter for slot-layout assertions.
@@ -115,5 +115,36 @@ describe('calculateTransactions', () => {
       price: { base: 1n, premium: 0n },
     })
     expect(result?.map((t) => t.name)).toEqual(['commitName', 'registerName'])
+  })
+})
+
+describe('acceptedRenewalTermsOverride', () => {
+  it("simulates the holder's renewal acceptance at acceptedRenewalTerms, slot 109", () => {
+    const terms = { kind: 'general', hash: `0x${'77'.repeat(32)}` } as const
+    const namePolicyAddress = '0x0000000000000000000000000000000000004444'
+    const holder = baseParams!.owner
+    const override = acceptedRenewalTermsOverride({
+      namePolicyAddress,
+      holder,
+      renewal: { name: 'somename.testing', expires: 2_000_000_000n, duration: 31_536_000, terms },
+    })
+
+    const tokenSlot = keccak256(
+      encodeAbiParameters(
+        [{ type: 'uint256' }, { type: 'uint256' }],
+        [BigInt(labelhash('somename')), 109n],
+      ),
+    )
+    const holderSlot = keccak256(
+      encodeAbiParameters([{ type: 'address' }, { type: 'bytes32' }], [holder, tokenSlot]),
+    )
+    const expiresSlot = keccak256(
+      encodeAbiParameters([{ type: 'uint256' }, { type: 'bytes32' }], [2_000_000_000n, holderSlot]),
+    )
+    const durationSlot = keccak256(
+      encodeAbiParameters([{ type: 'uint256' }, { type: 'bytes32' }], [31_536_000n, expiresSlot]),
+    )
+    expect(override.address).toBe(namePolicyAddress)
+    expect(mapUserState(override.stateDiff)).toEqual({ [durationSlot]: terms.hash })
   })
 })

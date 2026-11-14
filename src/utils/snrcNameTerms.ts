@@ -16,4 +16,6 @@ export const namePolicyTermsAbi = parseAbi([
   'function commitUnderCommunityTerms(bytes32 commitment, bytes32 acceptedTermsHash)',
   'function acceptGeneralTermsForClaim(uint256 tokenId, address from, uint256 offer, bytes32 acceptedTermsHash)',
   'function acceptCommunityTermsForClaim(uint256 tokenId, address from, uint256 offer, bytes32 acceptedTermsHash)',
+  'function acceptGeneralTermsForRenewal(uint256 tokenId, uint256 expires, uint256 duration, bytes32 acceptedTermsHash)',
+  'function acceptCommunityTermsForRenewal(uint256 tokenId, uint256 expires, uint256 duration, bytes32 acceptedTermsHash)',
 ])

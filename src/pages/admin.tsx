@@ -576,8 +576,8 @@ function AdminPanel() {
             <Section>
               <Typography fontVariant="largeBold">General Terms</Typography>
               <Typography fontVariant="small">
-                A name that is not listed can be registered or received only by someone who accepts
-                the current general terms.
+                A name that is not listed can be registered, received or renewed only by someone who
+                accepts the current general terms.
               </Typography>
               <TermsSettings
                 terms={onChainTerms?.general}
@@ -592,8 +592,8 @@ function AdminPanel() {
             <Section>
               <Typography fontVariant="largeBold">Community Names</Typography>
               <Typography fontVariant="small">
-                A listed name can be registered or received only by someone who accepts the current
-                community terms. Names that are registered or in grace are skipped.
+                A listed name can be registered, received or renewed only by someone who accepts the
+                current community terms. Names that are registered or in grace are skipped.
               </Typography>
               <Row>
                 <Input
