@@ -86,7 +86,6 @@ export const ExpirySection = ({ name, details }: Props) => {
   const actions = useExpiryActions({
     name,
     expiryDetails: expiry.data,
-    ownerData: details.ownerData,
     wrapperData: details.wrapperData,
   })
   const { options: calendarOptions, makeEvent } = useCalendarOptions(`Renew ${name}`)

@@ -1,10 +1,10 @@
 import { useTranslation } from 'react-i18next'
 import type { Address } from 'viem'
-import { useAccount } from 'wagmi'
 
 import { GetOwnerReturnType, GetWrapperDataReturnType } from '@ensdomains/ensjs/public'
 import { CalendarSVG, FastForwardSVG } from '@ensdomains/thorin'
 
+import { useIsNameHolder } from '@app/hooks/useIsNameHolder'
 import { useTransactionFlow } from '@app/transaction-flow/TransactionFlowProvider'
 import { nameLevel } from '@app/utils/name'
 
@@ -44,16 +44,14 @@ type UseExpiryActionsReturnType = ExpiryAction[]
 export const useExpiryActions = ({
   name,
   expiryDetails,
-  ownerData,
   wrapperData,
 }: {
   name: string
   expiryDetails: ReturnType<typeof useExpiryDetails>['data']
-  ownerData?: GetOwnerReturnType
   wrapperData?: GetWrapperDataReturnType
 }): UseExpiryActionsReturnType | null => {
   const { t } = useTranslation('common')
-  const { address, isConnected } = useAccount()
+  const { data: isHolder } = useIsNameHolder({ name })
   const { usePreparedDataInput } = useTransactionFlow()
   const showExtendNamesInput = usePreparedDataInput('ExtendNames')
 
@@ -70,7 +68,7 @@ export const useExpiryActions = ({
       primary: false,
       expiryDate,
     },
-    ...(isConnected
+    ...(isHolder
       ? [
           {
             label: t('action.extend'),
@@ -80,7 +78,7 @@ export const useExpiryActions = ({
             onClick: () => {
               showExtendNamesInput(`extend-names-${name}`, {
                 names: [name],
-                isSelf: isSelfExtendable({ ownerData, wrapperData, address }),
+                isSelf: true,
                 hasWrapped: !!wrapperData,
               })
             },
