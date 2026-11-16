@@ -16,6 +16,7 @@ import {
 import { parseTermsLink, useNameTerms, useTermsText } from '@app/hooks/useNameTerms'
 import { Content } from '@app/layouts/Content'
 import { getUnregistrableLabelsError, parseLabels } from '@app/utils/snrcLabels'
+import { REASONS } from '@app/utils/snrcNamePolicy'
 import { namePolicyTermsAbi, TermsKind } from '@app/utils/snrcNameTerms'
 import { ONE_DAY } from '@app/utils/time'
 
@@ -129,8 +130,6 @@ const namePolicyAbi = [
   },
 ] as const
 
-// SimplexNamePolicy.Reason; each index is the value stored on chain, so entries are only appended.
-const REASONS = ['None', 'Internal', 'Trademark', 'Community'] as const
 const REASON_OPTIONS = REASONS.map((label, value) => ({ value: String(value), label })).slice(1)
 const MIN_RESERVED_DAYS = MIN_REGISTRATION_DURATION / ONE_DAY
 const MAX_RESERVED_DAYS = MAX_SPONSORED_REGISTRATION_DURATION / ONE_DAY
