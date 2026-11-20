@@ -404,6 +404,15 @@ const ExtendNames = ({
           )
           .with(
             ['registration', false],
+            () => !!disputeEnd,
+            () => (
+              <Helper alert="info" data-testid="extend-names-dispute-period">
+                {t('input.extendNames.disputePeriod', { date: formatFullExpiry(disputeEnd) })}
+              </Helper>
+            ),
+          )
+          .with(
+            ['registration', false],
             () => isTooEarly,
             () => {
               const earliestExtension = new Date(
@@ -415,15 +424,6 @@ const ExtendNames = ({
                 </Helper>
               )
             },
-          )
-          .with(
-            ['registration', false],
-            () => !!disputeEnd,
-            () => (
-              <Helper alert="info" data-testid="extend-names-dispute-period">
-                {t('input.extendNames.disputePeriod', { date: formatFullExpiry(disputeEnd) })}
-              </Helper>
-            ),
           )
           .otherwise(() => (
             <>
