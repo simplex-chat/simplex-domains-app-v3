@@ -104,7 +104,11 @@ describe('Extendnames', () => {
   mockUseReservedNames.mockReturnValue({ reservedNames: [], isLoading: false })
   mockUseDisputeEnd.mockReturnValue({ status: 'none', isFetching: false })
   mockUseNameTerms.mockReturnValue(nameTerms())
-  mockUseAcceptedRenewalTerms.mockReturnValue({ data: undefined, isFetching: false })
+  mockUseAcceptedRenewalTerms.mockReturnValue({
+    data: undefined,
+    isLoading: false,
+    isFetching: false,
+  })
   it('should render', async () => {
     render(
       <ExtendNames
@@ -167,7 +171,11 @@ describe('Extendnames', () => {
     mockUseBlockTimestamp.mockReturnValue({ data: undefined })
     mockUseDisputeEnd.mockReturnValue({ status: 'none', isFetching: false })
     mockUseNameTerms.mockReturnValue(nameTerms())
-    mockUseAcceptedRenewalTerms.mockReturnValue({ data: undefined, isFetching: false })
+    mockUseAcceptedRenewalTerms.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+    })
     mockUseBalance.mockReturnValue({ data: { value: parseEther('1') }, isLoading: false })
   })
   it('should disable extending while the name is paid up close to three years ahead', () => {
