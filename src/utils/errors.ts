@@ -139,21 +139,22 @@ export const getReadableError = (err: unknown): ReadableError | null => {
     // instead of viem's generic "Execution reverted for an unknown reason".
     const insufficientFunds = getEstimateGasExecutionErrorMessage(err)
     if (insufficientFunds) return insufficientFunds
-  } else if (err instanceof TransactionRejectedRpcError || err instanceof RpcRequestError) {
-    return getTransactionRejectedRpcErrorMessage(err)
   }
   const data = getViemRevertErrorData(err)
-  if (!data) return null
-  try {
-    const decodedError = decodeErrorResult({ abi: allContractErrors, data })
-    return {
-      message: decodedError.errorName,
-      type: 'contract',
-    } as const
-  } catch {
-    // Unknown selector (error not in any bundled ABI): degrade gracefully. Without
-    // this, decodeErrorResult throws AbiErrorSignatureNotFoundError, which on the
-    // post-mining path swallowed the error entirely (no message rendered).
-    return null
+  if (data) {
+    try {
+      const decodedError = decodeErrorResult({ abi: allContractErrors, data })
+      return {
+        message: decodedError.errorName,
+        type: 'contract',
+      } as const
+    } catch {
+      // Unknown selector (error not in any bundled ABI): degrade gracefully. Without
+      // this, decodeErrorResult throws AbiErrorSignatureNotFoundError, which on the
+      // post-mining path swallowed the error entirely (no message rendered).
+    }
   }
+  if (err instanceof TransactionRejectedRpcError || err instanceof RpcRequestError)
+    return getTransactionRejectedRpcErrorMessage(err)
+  return null
 }
