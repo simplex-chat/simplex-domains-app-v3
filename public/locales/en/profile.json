@@ -36,6 +36,9 @@
         "action": "Withdraw offer"
       }
     },
+    "renew": {
+      "notHolder": "Connect the wallet that holds this name to extend it."
+    },
     "desynced": {
       "title": "Name misconfigured",
       "description": "This name is already owned, but a transaction is required to repair the ownership display. Extending the expiry – even by a single day – will restore accurate ownership information.",

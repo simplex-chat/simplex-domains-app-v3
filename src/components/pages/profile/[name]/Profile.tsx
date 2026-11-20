@@ -204,7 +204,7 @@ const ProfileContent = ({ isSelf, isLoading: parentIsLoading, name }: Props) => 
   //   }
   // }, [name, router, transactions])
 
-  useRenew(normalisedName)
+  const renewState = useRenew(normalisedName)
 
   const infoBanner = useMemo(() => {
     if (
@@ -224,8 +224,10 @@ const ProfileContent = ({ isSelf, isLoading: parentIsLoading, name }: Props) => 
         message: error.content,
         title: error.title,
       }
+    if (renewState === 'not-holder')
+      return { type: 'warning' as const, message: t('banner.renew.notHolder') }
     return undefined
-  }, [error])
+  }, [error, renewState, t])
 
   const ogImageUrl = `${OG_IMAGE_URL}/name/${normalisedName || name}`
 
