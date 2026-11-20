@@ -260,7 +260,7 @@
       },
       "acknowledge": "I accept that the records and subnames listed above stay with the name after I claim it.",
       "acceptIncomplete": "I accept the subnodes this app could not check.",
-      "disputePeriod": "Until {{date}}, the registration of {{name}} can be ended if a payment for it is disputed, reversed or refunded. If it is ended, you lose the name, and anyone can register it.",
+      "disputePeriod": "Until {{date}}, the registration of {{name}} can be ended if a payment for it is disputed, reversed or refunded in full. If it is ended, you lose the name, and anyone can register it.",
       "acknowledgeDispute": "I accept that I lose this name if its registration is ended before its dispute period ends.",
       "disputeFailed": "The dispute period of this name could not be read, so it cannot be claimed now."
     },

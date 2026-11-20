@@ -103,7 +103,7 @@
             },
             "dispute-period": {
               "title": "Dispute period ends",
-              "tooltip": "Until then, the registration can be ended if a payment for it is disputed, reversed or refunded, and the name can't be extended."
+              "tooltip": "Until then, the registration can be ended if a payment for it is disputed, reversed or refunded in full, and the name can't be extended."
             },
             "registration": {
               "title": "Registered"
