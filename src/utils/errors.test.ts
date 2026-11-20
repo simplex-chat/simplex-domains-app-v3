@@ -19,7 +19,7 @@ describe('getReadableError', () => {
   it.each([
     ['NotHolder', ['alice']],
     ['ExpiryMismatch', [1n, 2n]],
-  ] as const)('names the renewal refusal %s', (errorName, args) => {
+  ] as const)('names the error %s of a renewal that reverts', (errorName, args) => {
     const abi = parseAbi([
       'error NotHolder(string name)',
       'error ExpiryMismatch(uint256 named, uint256 current)',
@@ -28,7 +28,7 @@ describe('getReadableError', () => {
     expect(getReadableError(new RawContractError({ data }))?.message).toBe(errorName)
   })
 
-  it('names a refusal that the node returns with its revert data', () => {
+  it('names the error in the revert data that the node returns', () => {
     const data = encodeErrorResult({
       abi: parseAbi(['error NotHolder(string name)']),
       errorName: 'NotHolder',

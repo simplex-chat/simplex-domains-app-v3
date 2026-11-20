@@ -514,7 +514,7 @@ describe('Extendnames', () => {
       error: new RpcRequestError({ body: {}, url: '', error } as never),
       isLoading: false,
     })
-  it('should name a renewal the contracts refuse, and offer no Next for it', () => {
+  it('should name the error of a renewal that reverts, and offer no Next for it', () => {
     const abi = parseAbi(['error TermsMismatch(bytes32 accepted, bytes32 current)'])
     estimateFailure({
       code: 3,
