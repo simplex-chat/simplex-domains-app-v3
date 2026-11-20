@@ -1,5 +1,6 @@
 import {
   BaseError,
+  ContractErrorName,
   decodeErrorResult,
   EstimateGasExecutionError,
   formatEther,
@@ -132,6 +133,21 @@ const getTransactionRejectedRpcErrorMessage = (
   } satisfies ReadableError
 }
 
+export type RevertErrorName = ContractErrorName<typeof allContractErrors>
+
+export const getRevertErrorName = (err: unknown): RevertErrorName | undefined => {
+  const data = getViemRevertErrorData(err)
+  if (!data) return undefined
+  try {
+    return decodeErrorResult({ abi: allContractErrors, data }).errorName
+  } catch {
+    // Unknown selector (error not in any bundled ABI): degrade gracefully. Without
+    // this, decodeErrorResult throws AbiErrorSignatureNotFoundError, which on the
+    // post-mining path swallowed the error entirely (no message rendered).
+    return undefined
+  }
+}
+
 export const getReadableError = (err: unknown): ReadableError | null => {
   if (err instanceof EstimateGasExecutionError) {
     // Insufficient-funds has its own message; any other estimate-time revert falls
@@ -140,20 +156,8 @@ export const getReadableError = (err: unknown): ReadableError | null => {
     const insufficientFunds = getEstimateGasExecutionErrorMessage(err)
     if (insufficientFunds) return insufficientFunds
   }
-  const data = getViemRevertErrorData(err)
-  if (data) {
-    try {
-      const decodedError = decodeErrorResult({ abi: allContractErrors, data })
-      return {
-        message: decodedError.errorName,
-        type: 'contract',
-      } as const
-    } catch {
-      // Unknown selector (error not in any bundled ABI): degrade gracefully. Without
-      // this, decodeErrorResult throws AbiErrorSignatureNotFoundError, which on the
-      // post-mining path swallowed the error entirely (no message rendered).
-    }
-  }
+  const errorName = getRevertErrorName(err)
+  if (errorName) return { message: errorName, type: 'contract' }
   if (err instanceof TransactionRejectedRpcError || err instanceof RpcRequestError)
     return getTransactionRejectedRpcErrorMessage(err)
   return null

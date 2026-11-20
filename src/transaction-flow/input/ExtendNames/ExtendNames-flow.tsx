@@ -33,7 +33,7 @@ import { useZorb } from '@app/hooks/useZorb'
 import { createTransactionItem } from '@app/transaction-flow/transaction'
 import { TransactionDialogPassthrough } from '@app/transaction-flow/types'
 import { CURRENCY_FLUCTUATION_BUFFER_PERCENTAGE } from '@app/utils/constants'
-import { getReadableError } from '@app/utils/errors'
+import { getReadableError, getRevertErrorName, type RevertErrorName } from '@app/utils/errors'
 import { getReferrerHex } from '@app/utils/referrer'
 import { ONE_YEAR, secondsToYears, yearsToSeconds } from '@app/utils/time'
 import useUserConfig from '@app/utils/useUserConfig'
@@ -75,7 +75,7 @@ const getExtensionRestriction = ({
   return undefined
 }
 
-const RENEWAL_REVERTS = [
+const RENEWAL_REVERTS: RevertErrorName[] = [
   'NotHolder',
   'TermsMismatch',
   'ExpiryMismatch',
@@ -357,7 +357,8 @@ const ExtendNames = ({
   const isBalanceShort =
     !!balance && balance.value < calculateValueWithBuffer(totalRentFee) + transactionFee
   const estimateError = estimateGasLimitError && getReadableError(estimateGasLimitError)
-  const isRenewalReverted = !!estimateError && RENEWAL_REVERTS.includes(estimateError.message)
+  const estimateErrorName = getRevertErrorName(estimateGasLimitError)
+  const isRenewalReverted = !!estimateErrorName && RENEWAL_REVERTS.includes(estimateErrorName)
 
   const isShowingPreviousTransactionFee = transactionFee === 0n && previousTransactionFee > 0n
 
