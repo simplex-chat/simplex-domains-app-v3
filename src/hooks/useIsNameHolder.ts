@@ -1,18 +1,13 @@
 import { QueryFunctionContext, queryOptions } from '@tanstack/react-query'
-import { Address, parseAbi, zeroAddress } from 'viem'
+import { Address, zeroAddress } from 'viem'
 import { readContract } from 'viem/actions'
 
 import { getSnrcAddresses } from '@app/constants/chains'
 import { ConfigWithEns, CreateQueryKey } from '@app/types'
 import { useQuery } from '@app/utils/query/useQuery'
-import { getSnrcTokenId } from '@app/utils/snrcOffers'
+import { getSnrcTokenId, registrarOfferAbi } from '@app/utils/snrcOffers'
 
 import { useQueryOptions } from './useQueryOptions'
-
-const registrarTokensAbi = parseAbi([
-  'function balanceOf(address owner) view returns (uint256)',
-  'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
-])
 
 type QueryKey = CreateQueryKey<{ name: string }, 'getIsNameHolder', 'standard'>
 
@@ -24,7 +19,7 @@ export const getIsNameHolderQueryFn =
     if (tokenId === undefined || !registrar || registrar === zeroAddress || !address) return false
 
     const client = config.getClient({ chainId })
-    const target = { address: registrar, abi: registrarTokensAbi } as const
+    const target = { address: registrar, abi: registrarOfferAbi } as const
     const balance = await readContract(client, {
       ...target,
       functionName: 'balanceOf',

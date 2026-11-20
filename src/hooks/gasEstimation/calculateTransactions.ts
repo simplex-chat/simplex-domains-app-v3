@@ -12,7 +12,7 @@ type ReturnType = null | Parameters<typeof useEstimateGasWithStateOverride>[0]['
 
 const COMMITMENTS_SLOT = 160
 const ACCEPTED_TERMS_SLOT = 2
-const ACCEPTED_RENEWAL_TERMS_SLOT = 109
+const ACCEPTED_RENEWAL_TERMS_SLOT = 8
 
 export const acceptedRenewalTermsOverride = ({
   namePolicyAddress,
