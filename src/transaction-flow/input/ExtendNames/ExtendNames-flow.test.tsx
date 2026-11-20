@@ -8,6 +8,7 @@ import { useBlockTimestamp } from '@app/hooks/chain/useBlockTimestamp'
 import { useEstimateGasWithStateOverride } from '@app/hooks/chain/useEstimateGasWithStateOverride'
 import { useExpiry } from '@app/hooks/ensjs/public/useExpiry'
 import { usePrice } from '@app/hooks/ensjs/public/usePrice'
+import { useDisputeEnd } from '@app/hooks/useDisputeEnd'
 import { useEthPrice } from '@app/hooks/useEthPrice'
 import { useReferrer } from '@app/hooks/useReferrer'
 import { useReservedNames } from '@app/hooks/useReservedStatus'
@@ -24,6 +25,7 @@ vi.mock('@app/hooks/ensjs/public/useExpiry')
 vi.mock('@app/hooks/useEthPrice')
 vi.mock('@app/hooks/useReferrer')
 vi.mock('@app/hooks/useReservedStatus')
+vi.mock('@app/hooks/useDisputeEnd')
 
 const mockUseBlockTimestamp = mockFunction(useBlockTimestamp)
 const mockUseEstimateGasWithStateOverride = mockFunction(useEstimateGasWithStateOverride)
@@ -34,6 +36,7 @@ const mockUseEthPrice = mockFunction(useEthPrice)
 const mockUseExpiry = mockFunction(useExpiry)
 const mockUseReferrer = mockFunction(useReferrer)
 const mockUseReservedNames = mockFunction(useReservedNames)
+const mockUseDisputeEnd = mockFunction(useDisputeEnd)
 
 vi.mock('@ensdomains/thorin', async () => {
   const originalModule = await vi.importActual('@ensdomains/thorin')
@@ -73,6 +76,7 @@ describe('Extendnames', () => {
   mockUseBlockTimestamp.mockReturnValue({ data: undefined })
   mockUseReferrer.mockReturnValue(undefined)
   mockUseReservedNames.mockReturnValue({ reservedNames: [], isLoading: false })
+  mockUseDisputeEnd.mockReturnValue({ data: undefined, isLoading: false })
   it('should render', async () => {
     render(
       <ExtendNames
@@ -179,6 +183,41 @@ describe('Extendnames', () => {
   })
   it('should wait for the reservation read', () => {
     mockUseReservedNames.mockReturnValueOnce({ reservedNames: [], isLoading: true })
+    render(
+      <ExtendNames
+        {...{
+          data: { names: ['nick.simplex'], isSelf: true, hasWrapped: false },
+          dispatch: () => null,
+          onDismiss: () => null,
+        }}
+      />,
+    )
+    expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
+    expect(screen.queryByText('Invoice')).not.toBeInTheDocument()
+  })
+  it('should disable extending until the dispute period ends', () => {
+    mockUseDisputeEnd.mockReturnValueOnce({
+      data: new Date(Date.now() + 60_000),
+      isLoading: false,
+    })
+    render(
+      <ExtendNames
+        {...{
+          data: { names: ['nick.simplex'], isSelf: true, hasWrapped: false },
+          dispatch: () => null,
+          onDismiss: () => null,
+        }}
+      />,
+    )
+    expect(mockUseDisputeEnd).toHaveBeenLastCalledWith({ name: 'nick.simplex' })
+    expect(screen.getByTestId('extend-names-dispute-period')).toBeVisible()
+    expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
+    expect(mockUseEstimateGasWithStateOverride).toHaveBeenLastCalledWith(
+      expect.objectContaining({ enabled: false }),
+    )
+  })
+  it('should wait for the dispute period read', () => {
+    mockUseDisputeEnd.mockReturnValueOnce({ data: undefined, isLoading: true })
     render(
       <ExtendNames
         {...{

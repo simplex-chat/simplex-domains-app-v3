@@ -34,8 +34,14 @@ vi.mock('@app/hooks/chain/useChainName', () => ({
   useChainName: () => 'goerli',
 }))
 
+const mockUseDisputeEnd = vi.fn()
+vi.mock('@app/hooks/useDisputeEnd', () => ({
+  useDisputeEnd: () => mockUseDisputeEnd(),
+}))
+
 beforeEach(() => {
   vi.clearAllMocks()
+  mockUseDisputeEnd.mockReturnValue({ data: undefined, isLoading: false })
 })
 
 describe('useExpiryDetails', () => {
@@ -68,6 +74,43 @@ describe('useExpiryDetails', () => {
           expect.arrayContaining([expect.objectContaining({ type: 'registration' })]),
         )
       })
+    })
+  })
+
+  describe('dispute period', () => {
+    const expiryDetails = () =>
+      renderHook(() =>
+        useExpiryDetails({
+          name: 'test.testing',
+          details: {
+            expiryDate: new Date(3255803954000),
+            isLoading: false,
+          } as any,
+        }),
+      ).result.current
+
+    beforeEach(() => {
+      mockUseNameType.mockReturnValue({
+        data: 'eth-unwrapped-2ld',
+        isLoading: false,
+      })
+    })
+
+    it('should return the end of the dispute period while it lasts', () => {
+      const disputeEnd = new Date(Date.now() + 60_000)
+      mockUseDisputeEnd.mockReturnValue({ data: disputeEnd, isLoading: false })
+      expect(expiryDetails().data).toContainEqual(
+        expect.objectContaining({ type: 'dispute-period', date: disputeEnd }),
+      )
+    })
+
+    it('should return no dispute period without one', () => {
+      expect(expiryDetails().data?.map(({ type }) => type)).toEqual(['expiry', 'grace-period'])
+    })
+
+    it('should wait for the dispute period', () => {
+      mockUseDisputeEnd.mockReturnValue({ data: undefined, isLoading: true })
+      expect(expiryDetails()).toMatchObject({ data: undefined, isLoading: true })
     })
   })
 

@@ -4,6 +4,7 @@ import { Hex, zeroAddress } from 'viem'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useClaimChecks } from '@app/hooks/useClaimChecks'
+import { useDisputeEnd } from '@app/hooks/useDisputeEnd'
 import { useNameOffer } from '@app/hooks/useNameOffer'
 import { useAcceptedClaimTerms, useNameTerms } from '@app/hooks/useNameTerms'
 import { ClaimNode, ClaimRecord } from '@app/utils/snrcClaimChecks'
@@ -12,6 +13,7 @@ import { makeMockIntersectionObserver } from '../../../../test/mock/makeMockInte
 import ClaimName from './ClaimName-flow'
 
 vi.mock('@app/hooks/useClaimChecks')
+vi.mock('@app/hooks/useDisputeEnd')
 vi.mock('@app/hooks/useNameOffer')
 vi.mock('@app/hooks/useNameTerms')
 vi.mock('@app/components/@molecules/AvatarWithIdentifier/AvatarWithIdentifier', () => ({
@@ -21,6 +23,7 @@ vi.mock('@app/components/@molecules/AvatarWithIdentifier/AvatarWithIdentifier', 
 const mockUseNameTerms = mockFunction(useNameTerms)
 const mockUseAcceptedClaimTerms = mockFunction(useAcceptedClaimTerms)
 const mockUseClaimChecks = mockFunction(useClaimChecks)
+const mockUseDisputeEnd = mockFunction(useDisputeEnd)
 const mockUseNameOffer = mockFunction(useNameOffer)
 const mockDispatch = vi.fn()
 
@@ -92,6 +95,13 @@ const nameTerms = (state: Partial<ReturnType<typeof useNameTerms>> = {}) =>
 const claimTerms = (data?: string, isLoading = false) =>
   ({ data, isLoading }) as unknown as ReturnType<typeof useAcceptedClaimTerms>
 
+const disputeEnd = (state: QueryState & { data?: Date; isLoading?: boolean } = {}) => ({
+  isLoading: false,
+  isFetching: false,
+  isError: false,
+  ...state,
+})
+
 makeMockIntersectionObserver()
 
 const claimName = () => (
@@ -105,6 +115,7 @@ describe('ClaimName', () => {
     mockUseClaimChecks.mockReturnValue(checks())
     mockUseNameTerms.mockReturnValue(nameTerms())
     mockUseAcceptedClaimTerms.mockReturnValue(claimTerms())
+    mockUseDisputeEnd.mockReturnValue(disputeEnd())
   })
 
   it('shows None and asks for no acknowledgement for a name without records or subnames', () => {
@@ -390,6 +401,63 @@ describe('ClaimName', () => {
       enabled: true,
     })
     expect(screen.getByTestId('claim-name-confirm')).toBeDisabled()
+  })
+
+  it('shows the end of the dispute period and claims only once it is acknowledged', async () => {
+    const end = new Date(Date.now() + 60_000)
+    mockUseClaimChecks.mockReturnValue(checks({ nodes: [{ ...root, records: [] }] }))
+    mockUseDisputeEnd.mockReturnValue(disputeEnd({ data: end }))
+    render(claimName())
+    expect(mockUseDisputeEnd).toHaveBeenCalledWith({ name: 'alice.testing' })
+    expect(screen.getByText('input.claimName.disputePeriod')).toBeVisible()
+    expect(screen.getByTestId('claim-name-confirm')).toBeDisabled()
+
+    await userEvent.click(screen.getByTestId('claim-name-acknowledge-dispute'))
+    await userEvent.click(screen.getByTestId('claim-name-confirm'))
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      name: 'setTransactions',
+      payload: [
+        { name: 'claimName', data: { name: 'alice.testing', holder: HOLDER, digest: '0xaa' } },
+      ],
+    })
+  })
+
+  it('asks for the acknowledgement again when the dispute end or the holder changes', async () => {
+    mockUseClaimChecks.mockReturnValue(checks({ nodes: [{ ...root, records: [] }] }))
+    mockUseDisputeEnd.mockReturnValue(disputeEnd({ data: new Date(Date.now() + 60_000) }))
+    const { rerender } = render(claimName())
+    await userEvent.click(screen.getByTestId('claim-name-acknowledge-dispute'))
+    expect(screen.getByTestId('claim-name-confirm')).toBeEnabled()
+
+    mockUseDisputeEnd.mockReturnValue(disputeEnd({ data: new Date(Date.now() + 120_000) }))
+    rerender(claimName())
+    expect(screen.getByTestId('claim-name-acknowledge-dispute')).not.toBeChecked()
+    expect(screen.getByTestId('claim-name-confirm')).toBeDisabled()
+
+    await userEvent.click(screen.getByTestId('claim-name-acknowledge-dispute'))
+    mockUseNameOffer.mockReturnValue(offer({ holder: OTHER_HOLDER }))
+    rerender(claimName())
+    expect(screen.getByTestId('claim-name-acknowledge-dispute')).not.toBeChecked()
+    expect(screen.getByTestId('claim-name-confirm')).toBeDisabled()
+  })
+
+  it('disables Claim while the dispute end refetches or cannot be read', () => {
+    mockUseClaimChecks.mockReturnValue(checks({ nodes: [{ ...root, records: [] }] }))
+    mockUseDisputeEnd.mockReturnValue(disputeEnd({ isFetching: true }))
+    const { rerender } = render(claimName())
+    expect(screen.getByTestId('claim-name-confirm')).toBeDisabled()
+
+    mockUseDisputeEnd.mockReturnValue(disputeEnd({ isError: true }))
+    rerender(claimName())
+    expect(screen.getByText('input.claimName.disputeFailed')).toBeVisible()
+    expect(screen.getByTestId('claim-name-confirm')).toBeDisabled()
+  })
+
+  it('waits for the dispute end', () => {
+    mockUseDisputeEnd.mockReturnValue(disputeEnd({ isLoading: true }))
+    render(claimName())
+    expect(screen.queryByTestId('claim-name-view')).not.toBeInTheDocument()
   })
 
   it('reads no earlier acceptance for a name without terms', () => {
