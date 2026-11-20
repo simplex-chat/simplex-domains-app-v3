@@ -45,7 +45,7 @@ export const useExpiryDetails = ({ name, details }: Input, options: Options = {}
   })
   const { buildTransactionUrl } = useBlockExplorer()
   const registrationData = useRegistrationData({ name, enabled: enabled && isETH2LD })
-  const disputeEnd = useDisputeEnd({ name })
+  const disputeEnd = useDisputeEnd({ name, enabled })
 
   const isLoading =
     nameType.isLoading ||
