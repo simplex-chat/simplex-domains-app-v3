@@ -526,6 +526,7 @@ describe('Extendnames', () => {
     ['TermsMismatch', [TERMS, TERMS], 'termsMismatch'],
     ['ExpiryMismatch', [1n, 2n], 'expiryMismatch'],
     ['TermsNotAccepted', ['nick'], 'termsNotAccepted'],
+    ['DisputePeriodNotOver', [1n], 'disputePeriodNotOver'],
   ] as const)(
     'should say why a renewal that reverts with %s fails, and offer no Next for it',
     (errorName, args, text) => {
@@ -534,6 +535,7 @@ describe('Extendnames', () => {
         'error TermsMismatch(bytes32 accepted, bytes32 current)',
         'error ExpiryMismatch(uint256 named, uint256 current)',
         'error TermsNotAccepted(string name)',
+        'error DisputePeriodNotOver(uint256 id)',
       ])
       estimateFailure(
         new RpcRequestError({
