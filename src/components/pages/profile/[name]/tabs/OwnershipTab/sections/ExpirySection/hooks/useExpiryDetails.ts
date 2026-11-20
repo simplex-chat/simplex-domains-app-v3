@@ -186,5 +186,6 @@ export const useExpiryDetails = ({ name, details }: Input, options: Options = {}
     data,
     isLoading,
     isCachedData,
+    isDisputeEndUnknown: disputeEnd.status === 'unknown',
   }
 }
