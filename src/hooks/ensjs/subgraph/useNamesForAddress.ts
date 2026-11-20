@@ -72,11 +72,11 @@ const getNamesForAddressFromChain = async (
         abi: baseRegistrarReadAbi,
         functionName: 'nameExpires',
         args: [tokenId],
-      }).catch(() => 0n)) as bigint
+      }).catch(() => undefined)) as bigint | undefined
       // ERC721Enumerable still counts an expired-but-not-yet-re-registered name (the
       // SNRC ownerOf reverts on expiry, but the enumeration set isn't pruned), so skip
       // expired names to match the previous Transfer-scan + ownerOf behaviour.
-      if (expiry && Number(expiry) <= now) return
+      if (expiry !== undefined && Number(expiry) <= now) return
       const labelDisplay = label || `[${labelhashHex.slice(2)}]`
       const fullName = `${labelDisplay}.${tld}`
       results.push({
