@@ -263,7 +263,7 @@ export const useAcceptedRenewalTerms = ({
     queryOptions({
       queryKey: initialOptions.queryKey,
       queryFn: initialOptions.queryFn,
-      enabled,
+      enabled: enabled && expires !== undefined,
       placeholderData: keepPreviousData,
     }),
   )
