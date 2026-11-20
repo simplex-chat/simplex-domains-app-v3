@@ -1,14 +1,16 @@
 import { QueryFunctionContext, queryOptions } from '@tanstack/react-query'
-import { Address, zeroAddress } from 'viem'
+import { Address, parseAbi, zeroAddress } from 'viem'
 import { readContract } from 'viem/actions'
 
 import { getSnrcAddresses } from '@app/constants/chains'
 import { useBlockTimestamp } from '@app/hooks/chain/useBlockTimestamp'
 import { ConfigWithEns, CreateQueryKey } from '@app/types'
 import { useQuery } from '@app/utils/query/useQuery'
-import { getSnrcTokenId, registrarOfferAbi } from '@app/utils/snrcOffers'
+import { getSnrcTokenId } from '@app/utils/snrcOffers'
 
 import { useQueryOptions } from './useQueryOptions'
+
+const disputeUntilAbi = parseAbi(['function disputeUntil(uint256 tokenId) view returns (uint256)'])
 
 type QueryKey = CreateQueryKey<{ name: string }, 'getDisputeEnd', 'standard'>
 
@@ -20,7 +22,7 @@ export const getDisputeEndQueryFn =
     if (tokenId === undefined || !registrar || registrar === zeroAddress) return null
     const disputeUntil = await readContract(config.getClient({ chainId }), {
       address: registrar,
-      abi: registrarOfferAbi,
+      abi: disputeUntilAbi,
       functionName: 'disputeUntil',
       args: [tokenId],
     })
