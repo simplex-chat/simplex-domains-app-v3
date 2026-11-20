@@ -289,7 +289,8 @@
         "notHolder": "Only the wallet that holds this name can extend it.",
         "termsMismatch": "The terms changed. Review them and try again.",
         "expiryMismatch": "The name's expiry changed. Open Extend again.",
-        "termsNotAccepted": "Accept the terms to extend this name."
+        "termsNotAccepted": "Accept the terms to extend this name.",
+        "disputePeriodNotOver": "The dispute period of this name has not ended yet. Try again in a few minutes."
       }
     },
     "transferProfile": {

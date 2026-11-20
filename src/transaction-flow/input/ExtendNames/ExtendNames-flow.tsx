@@ -88,6 +88,7 @@ const RENEWAL_REVERT_MESSAGES: Partial<Record<RevertErrorName, string>> = {
   TermsMismatch: 'input.extendNames.errors.termsMismatch',
   ExpiryMismatch: 'input.extendNames.errors.expiryMismatch',
   TermsNotAccepted: 'input.extendNames.errors.termsNotAccepted',
+  DisputePeriodNotOver: 'input.extendNames.errors.disputePeriodNotOver',
 }
 
 const PlusMinusWrapper = styled.div(
