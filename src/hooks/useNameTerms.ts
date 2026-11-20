@@ -1,4 +1,4 @@
-import { QueryFunctionContext, queryOptions } from '@tanstack/react-query'
+import { keepPreviousData, QueryFunctionContext, queryOptions } from '@tanstack/react-query'
 import { Address, Hex, keccak256, sha256, stringToBytes, toHex } from 'viem'
 import { readContract } from 'viem/actions'
 import { localhost } from 'viem/chains'
@@ -260,6 +260,11 @@ export const useAcceptedRenewalTerms = ({
     queryFn: getAcceptedRenewalTermsQueryFn,
   })
   return useQuery(
-    queryOptions({ queryKey: initialOptions.queryKey, queryFn: initialOptions.queryFn, enabled }),
+    queryOptions({
+      queryKey: initialOptions.queryKey,
+      queryFn: initialOptions.queryFn,
+      enabled,
+      placeholderData: keepPreviousData,
+    }),
   )
 }
