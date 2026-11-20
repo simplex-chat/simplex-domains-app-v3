@@ -136,6 +136,7 @@ describe('Extendnames', () => {
   afterEach(() => {
     mockUseExpiry.mockReturnValue({ data: { expiry: { date: new Date() } }, isLoading: false })
     mockUseBlockTimestamp.mockReturnValue({ data: undefined })
+    mockUseDisputeEnd.mockReturnValue({ status: 'none', isFetching: false })
   })
   it('should disable extending while the name is paid up close to three years ahead', () => {
     mockExpiryAhead(MAX_REGISTRATION_DURATION)
@@ -196,7 +197,7 @@ describe('Extendnames', () => {
     expect(screen.queryByText('Invoice')).not.toBeInTheDocument()
   })
   it('should disable extending until the dispute period ends', () => {
-    mockUseDisputeEnd.mockReturnValueOnce({
+    mockUseDisputeEnd.mockReturnValue({
       status: 'until',
       date: new Date(Date.now() + 60_000),
       isFetching: false,
@@ -218,7 +219,7 @@ describe('Extendnames', () => {
     )
   })
   it('should wait for the dispute period read', () => {
-    mockUseDisputeEnd.mockReturnValueOnce({ status: 'loading', isFetching: true })
+    mockUseDisputeEnd.mockReturnValue({ status: 'loading', isFetching: true })
     render(
       <ExtendNames
         {...{
@@ -232,7 +233,7 @@ describe('Extendnames', () => {
     expect(screen.queryByText('Invoice')).not.toBeInTheDocument()
   })
   it('should not extend while the dispute period cannot be read', () => {
-    mockUseDisputeEnd.mockReturnValueOnce({ status: 'unknown', isFetching: false })
+    mockUseDisputeEnd.mockReturnValue({ status: 'unknown', isFetching: false })
     render(
       <ExtendNames
         {...{
@@ -250,7 +251,7 @@ describe('Extendnames', () => {
   })
   it('should name the earliest extension when it comes after the dispute end', () => {
     mockExpiryAhead(MAX_REGISTRATION_DURATION)
-    mockUseDisputeEnd.mockReturnValueOnce({
+    mockUseDisputeEnd.mockReturnValue({
       status: 'until',
       date: new Date(Date.now() + 60_000),
       isFetching: false,
@@ -269,7 +270,7 @@ describe('Extendnames', () => {
   })
   it('should name the dispute end when it comes after the earliest extension', () => {
     mockExpiryAhead(MAX_REGISTRATION_DURATION - ONE_YEAR + ONE_DAY)
-    mockUseDisputeEnd.mockReturnValueOnce({
+    mockUseDisputeEnd.mockReturnValue({
       status: 'until',
       date: new Date(Date.now() + 2 * ONE_DAY * 1000),
       isFetching: false,
