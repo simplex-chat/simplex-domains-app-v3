@@ -3,6 +3,7 @@ import { Address, zeroAddress } from 'viem'
 import { readContract } from 'viem/actions'
 
 import { getSnrcAddresses } from '@app/constants/chains'
+import { useBlockTimestamp } from '@app/hooks/chain/useBlockTimestamp'
 import { ConfigWithEns, CreateQueryKey } from '@app/types'
 import { useQuery } from '@app/utils/query/useQuery'
 import { getSnrcTokenId, registrarOfferAbi } from '@app/utils/snrcOffers'
@@ -26,7 +27,7 @@ export const getDisputeEndQueryFn =
     return disputeUntil === 0n ? null : new Date(Number(disputeUntil) * 1000)
   }
 
-export const useDisputeEnd = ({ name }: { name: string }) => {
+export const useDisputeEnd = ({ name, enabled = true }: { name: string; enabled?: boolean }) => {
   const initialOptions = useQueryOptions({
     params: { name },
     functionName: 'getDisputeEnd',
@@ -34,7 +35,18 @@ export const useDisputeEnd = ({ name }: { name: string }) => {
     queryFn: getDisputeEndQueryFn,
   })
   const query = useQuery(
-    queryOptions({ queryKey: initialOptions.queryKey, queryFn: initialOptions.queryFn }),
+    queryOptions({ queryKey: initialOptions.queryKey, queryFn: initialOptions.queryFn, enabled }),
   )
-  return { ...query, data: query.data && query.data > new Date() ? query.data : undefined }
+  const blockTimestamp = useBlockTimestamp({ enabled })
+  return {
+    ...query,
+    data:
+      query.data &&
+      blockTimestamp.data !== undefined &&
+      BigInt(query.data.getTime()) > blockTimestamp.data
+        ? query.data
+        : undefined,
+    isLoading: query.isLoading || blockTimestamp.isLoading,
+    isError: query.isError || blockTimestamp.isError,
+  }
 }
