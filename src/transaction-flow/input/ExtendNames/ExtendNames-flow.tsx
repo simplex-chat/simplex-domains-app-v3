@@ -75,6 +75,14 @@ const getExtensionRestriction = ({
   return undefined
 }
 
+const RENEWAL_REFUSALS = [
+  'NotHolder',
+  'TermsMismatch',
+  'ExpiryMismatch',
+  'DisputePeriodNotOver',
+  'TermsNotAccepted',
+]
+
 const PlusMinusWrapper = styled.div(
   () => css`
     width: 100%;
@@ -349,6 +357,7 @@ const ExtendNames = ({
   const isBalanceShort =
     !!balance && balance.value < calculateValueWithBuffer(totalRentFee) + transactionFee
   const estimateError = estimateGasLimitError && getReadableError(estimateGasLimitError)
+  const isRenewalRefused = !!estimateError && RENEWAL_REFUSALS.includes(estimateError.message)
 
   const isShowingPreviousTransactionFee = transactionFee === 0n && previousTransactionFee > 0n
 
@@ -427,7 +436,8 @@ const ExtendNames = ({
           terms.isFetching ||
           renewalTerms.isFetching ||
           isExpiryFetching ||
-          isBalanceShort,
+          isBalanceShort ||
+          isRenewalRefused,
         onClick: () => {
           if (!priceData) return
           const transactions = createTransactionItem('extendNames', {
