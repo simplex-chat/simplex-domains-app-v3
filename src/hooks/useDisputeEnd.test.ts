@@ -4,6 +4,7 @@ import { labelhash } from 'viem'
 import { readContract } from 'viem/actions'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { useBlockTimestamp } from '@app/hooks/chain/useBlockTimestamp'
 import { ConfigWithEns } from '@app/types'
 import { useQuery } from '@app/utils/query/useQuery'
 
@@ -11,6 +12,7 @@ import { getDisputeEndQueryFn, useDisputeEnd } from './useDisputeEnd'
 
 vi.mock('viem/actions')
 vi.mock('@app/utils/query/useQuery')
+vi.mock('@app/hooks/chain/useBlockTimestamp')
 vi.mock('./useQueryOptions', () => ({
   useQueryOptions: ({ params, functionName }: { params: object; functionName: string }) => ({
     queryKey: [params, undefined, undefined, undefined, functionName],
@@ -26,6 +28,7 @@ const REGISTRAR = '0x1111111111111111111111111111111111111111'
 
 const mockReadContract = vi.mocked(readContract)
 const mockUseQuery = mockFunction(useQuery)
+const mockUseBlockTimestamp = mockFunction(useBlockTimestamp)
 const config = { getClient: () => ({}) } as unknown as ConfigWithEns
 
 const getDisputeEnd = (name: string) =>
@@ -33,8 +36,9 @@ const getDisputeEnd = (name: string) =>
     queryKey: [{ name }, 1337, undefined, undefined, 'getDisputeEnd'],
   } as never)
 
-const disputeEnd = (data: Date | null) => {
+const disputeEnd = (data: Date | null, blockTime = Date.now()) => {
   mockUseQuery.mockReturnValue({ data, isLoading: false } as never)
+  mockUseBlockTimestamp.mockReturnValue({ data: BigInt(blockTime), isLoading: false } as never)
   return renderHook(() => useDisputeEnd({ name: 'alice.testing' })).result.current.data
 }
 
@@ -77,5 +81,30 @@ describe('useDisputeEnd', () => {
   it('gives no dispute end once it has passed, or without one', () => {
     expect(disputeEnd(new Date(Date.now() - 60_000))).toBeUndefined()
     expect(disputeEnd(null)).toBeUndefined()
+  })
+
+  it('compares the dispute end with the latest block, not with the clock of the device', () => {
+    const end = new Date(Date.now() - 60_000)
+    expect(disputeEnd(end, end.getTime() - 1000)).toBe(end)
+  })
+
+  it('gives no dispute end from the block at its end, where a renewal succeeds', () => {
+    const end = new Date(Date.now() + 60_000)
+    expect(disputeEnd(end, end.getTime())).toBeUndefined()
+  })
+
+  it('waits for the latest block', () => {
+    mockUseQuery.mockReturnValue({ data: null, isLoading: false } as never)
+    mockUseBlockTimestamp.mockReturnValue({ data: undefined, isLoading: true } as never)
+    const { result } = renderHook(() => useDisputeEnd({ name: 'alice.testing' }))
+    expect(result.current.isLoading).toBe(true)
+  })
+
+  it('reads neither the dispute end nor the latest block while disabled', () => {
+    mockUseQuery.mockReturnValue({ data: undefined, isLoading: false } as never)
+    mockUseBlockTimestamp.mockReturnValue({ data: undefined, isLoading: false } as never)
+    renderHook(() => useDisputeEnd({ name: 'alice.testing', enabled: false }))
+    expect(mockUseQuery).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
+    expect(mockUseBlockTimestamp).toHaveBeenCalledWith({ enabled: false })
   })
 })

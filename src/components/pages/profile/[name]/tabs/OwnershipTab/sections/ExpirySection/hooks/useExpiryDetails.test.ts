@@ -36,7 +36,7 @@ vi.mock('@app/hooks/chain/useChainName', () => ({
 
 const mockUseDisputeEnd = vi.fn()
 vi.mock('@app/hooks/useDisputeEnd', () => ({
-  useDisputeEnd: () => mockUseDisputeEnd(),
+  useDisputeEnd: (parameters: unknown) => mockUseDisputeEnd(parameters),
 }))
 
 beforeEach(() => {
@@ -111,6 +111,16 @@ describe('useExpiryDetails', () => {
     it('should wait for the dispute period', () => {
       mockUseDisputeEnd.mockReturnValue({ data: undefined, isLoading: true })
       expect(expiryDetails()).toMatchObject({ data: undefined, isLoading: true })
+    })
+
+    it('should read the dispute period only while enabled', () => {
+      renderHook(() =>
+        useExpiryDetails(
+          { name: 'test.testing', details: { isLoading: false } as any },
+          { enabled: false },
+        ),
+      )
+      expect(mockUseDisputeEnd).toHaveBeenCalledWith({ name: 'test.testing', enabled: false })
     })
   })
 

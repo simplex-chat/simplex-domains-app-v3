@@ -230,4 +230,22 @@ describe('Extendnames', () => {
     expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
     expect(screen.queryByText('Invoice')).not.toBeInTheDocument()
   })
+  it('should name the end of the dispute period before the earliest extension', () => {
+    mockExpiryAhead(MAX_REGISTRATION_DURATION)
+    mockUseDisputeEnd.mockReturnValueOnce({
+      data: new Date(Date.now() + 60_000),
+      isLoading: false,
+    })
+    render(
+      <ExtendNames
+        {...{
+          data: { names: ['nick.testing'], isSelf: true, hasWrapped: false },
+          dispatch: () => null,
+          onDismiss: () => null,
+        }}
+      />,
+    )
+    expect(screen.getByTestId('extend-names-dispute-period')).toBeVisible()
+    expect(screen.queryByTestId('extend-names-too-early')).not.toBeInTheDocument()
+  })
 })
