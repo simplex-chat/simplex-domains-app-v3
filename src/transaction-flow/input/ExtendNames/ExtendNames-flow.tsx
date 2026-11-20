@@ -275,7 +275,7 @@ const ExtendNames = ({
       totalRentFee > 0n &&
       !isTooEarly &&
       !isReserved &&
-      !disputeEndDate,
+      disputeEnd.status === 'none',
   })
 
   const previousTransactionFee = usePreviousDistinct(transactionFee) || 0n
@@ -352,8 +352,7 @@ const ExtendNames = ({
           isTooEarly ||
           isReserved ||
           isReservedLoading ||
-          !!disputeEndDate ||
-          disputeEnd.status === 'loading',
+          disputeEnd.status !== 'none',
         onClick: () => {
           if (!priceData) return
           const transactions = createTransactionItem('extendNames', {
@@ -425,6 +424,15 @@ const ExtendNames = ({
                 </Helper>
               )
             },
+          )
+          .with(
+            ['registration', false],
+            () => disputeEnd.status === 'unknown',
+            () => (
+              <Helper alert="error" data-testid="extend-names-dispute-failed">
+                {t('input.extendNames.disputeFailed')}
+              </Helper>
+            ),
           )
           .otherwise(() => (
             <>
