@@ -12,14 +12,13 @@ import { getSnrcAddresses } from '@app/constants/chains'
 import { useQueryOptions } from '@app/hooks/useQueryOptions'
 import { ConfigWithEns, CreateQueryKey, InfiniteQueryConfig, PartialBy } from '@app/types'
 import { useInfiniteQuery } from '@app/utils/query/useInfiniteQuery'
+import { registrarTokensAbi } from '@app/utils/snrcOffers'
 
 // SNRC v3 BaseRegistrar is ERC721Enumerable, so read the owner's tokens directly
 // (balanceOf + tokenOfOwnerByIndex) instead of scanning Transfer logs — fast,
 // trustless, no indexer, and no eth_getLogs range limits. tokenId == labelhash; the
 // on-chain labelOf index gives the plaintext label (no localStorage cache needed).
 const baseRegistrarReadAbi = parseAbi([
-  'function balanceOf(address) view returns (uint256)',
-  'function tokenOfOwnerByIndex(address, uint256) view returns (uint256)',
   'function labelOf(uint256) view returns (string)',
   'function nameExpires(uint256) view returns (uint256)',
 ])
@@ -40,7 +39,7 @@ const getNamesForAddressFromChain = async (
   // ERC721Enumerable: enumerate the owner's tokenIds (labelhashes) on-chain.
   const balance = (await readContract(client, {
     address: baseRegistrar,
-    abi: baseRegistrarReadAbi,
+    abi: registrarTokensAbi,
     functionName: 'balanceOf',
     args: [address],
   })) as bigint
@@ -48,7 +47,7 @@ const getNamesForAddressFromChain = async (
     Array.from({ length: Number(balance) }, (_, i) =>
       readContract(client, {
         address: baseRegistrar,
-        abi: baseRegistrarReadAbi,
+        abi: registrarTokensAbi,
         functionName: 'tokenOfOwnerByIndex',
         args: [address, BigInt(i)],
       }).catch(() => null),
@@ -72,11 +71,11 @@ const getNamesForAddressFromChain = async (
         abi: baseRegistrarReadAbi,
         functionName: 'nameExpires',
         args: [tokenId],
-      }).catch(() => 0n)) as bigint
+      }).catch(() => undefined)) as bigint | undefined
       // ERC721Enumerable still counts an expired-but-not-yet-re-registered name (the
       // SNRC ownerOf reverts on expiry, but the enumeration set isn't pruned), so skip
       // expired names to match the previous Transfer-scan + ownerOf behaviour.
-      if (expiry && Number(expiry) <= now) return
+      if (expiry !== undefined && Number(expiry) <= now) return
       const labelDisplay = label || `[${labelhashHex.slice(2)}]`
       const fullName = `${labelDisplay}.${tld}`
       results.push({

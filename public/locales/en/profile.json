@@ -36,6 +36,9 @@
         "action": "Withdraw offer"
       }
     },
+    "renew": {
+      "notHolder": "Connect the wallet that holds this name to extend it."
+    },
     "desynced": {
       "title": "Name misconfigured",
       "description": "This name is already owned, but a transaction is required to repair the ownership display. Extending the expiry – even by a single day – will restore accurate ownership information.",
@@ -100,6 +103,11 @@
             "grace-period": {
               "title": "Grace period ends",
               "tooltip": "A 90 day grace window after expiration, when the name can still be extended but not re-registered."
+            },
+            "dispute-period": {
+              "title": "Dispute period ends",
+              "tooltip": "Until then, the registration can be ended if a payment for it is disputed, reversed or refunded in full, and the name can't be extended.",
+              "unknown": "The dispute period of this name could not be read."
             },
             "registration": {
               "title": "Registered"

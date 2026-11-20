@@ -7,6 +7,7 @@ import { Button, CheckboxRow, Dialog, Helper, Typography } from '@ensdomains/tho
 import { AvatarWithIdentifier } from '@app/components/@molecules/AvatarWithIdentifier/AvatarWithIdentifier'
 import { NameTerms } from '@app/components/NameTerms'
 import { useClaimChecks } from '@app/hooks/useClaimChecks'
+import { useDisputeEnd } from '@app/hooks/useDisputeEnd'
 import { useNameOffer } from '@app/hooks/useNameOffer'
 import { useAcceptedClaimTerms, useNameTerms } from '@app/hooks/useNameTerms'
 import { useTermsAcceptance } from '@app/hooks/useTermsAcceptance'
@@ -15,6 +16,7 @@ import { createTransactionItem } from '@app/transaction-flow/transaction'
 import TransactionLoader from '@app/transaction-flow/TransactionLoader'
 import { TransactionDialogPassthrough } from '@app/transaction-flow/types'
 import { ClaimNode } from '@app/utils/snrcClaimChecks'
+import { formatFullExpiry } from '@app/utils/utils'
 
 const List = styled.ul(
   ({ theme }) => css`
@@ -84,15 +86,23 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
   })
   const needsTermsAcceptance = terms.required && (!terms.hash || claimTerms.data !== terms.hash)
   const acceptance = useTermsAcceptance(terms)
+  const disputeEnd = useDisputeEnd({ name })
   // The review stays as first read: a later change fails claimName's re-check instead of
   // replacing what the recipient is reading.
   const firstChecks = useRef(checks.data)
   firstChecks.current ??= checks.data
   const [acknowledgedReview, setAcknowledgedReview] = useState<string>()
   const [acceptedIncompleteReview, setAcceptedIncompleteReview] = useState<string>()
+  const [acknowledgedDisputeKey, setAcknowledgedDisputeKey] = useState<string>()
   const [clearRecords, setClearRecords] = useState(false)
 
-  if (offer.isLoading || checks.isLoading || terms.isLoading || claimTerms.isLoading)
+  if (
+    offer.isLoading ||
+    checks.isLoading ||
+    terms.isLoading ||
+    claimTerms.isLoading ||
+    disputeEnd.status === 'loading'
+  )
     return <TransactionLoader />
 
   const holder = !offer.isError && offer.data?.isRecipient ? offer.data.holder : undefined
@@ -108,6 +118,10 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
     !!root?.customResolver ||
     !!root?.records.some(({ resolver }) => !(clearRecords && resolver === clearResolver))
   const acknowledged = !!reviewKey && (!staysAfterClaim || acknowledgedReview === reviewKey)
+  const disputeKey =
+    disputeEnd.date && holder ? `${disputeEnd.date.getTime()} ${holder}` : undefined
+  const acknowledgedDispute =
+    !disputeEnd.date || (!!disputeKey && acknowledgedDisputeKey === disputeKey)
 
   const onConfirm = () => {
     if (!holder || !review) return
@@ -149,6 +163,26 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
           </Helper>
         )}
         <Typography>{t('input.claimName.description', { name })}</Typography>
+        {disputeEnd.date && (
+          <>
+            <Helper alert="warning">
+              {t('input.claimName.disputePeriod', {
+                name,
+                date: formatFullExpiry(disputeEnd.date),
+              })}
+            </Helper>
+            <CheckboxRow
+              data-testid="claim-name-acknowledge-dispute"
+              label={t('input.claimName.acknowledgeDispute')}
+              checked={acknowledgedDispute}
+              disabled={!disputeKey}
+              onChange={(e) => setAcknowledgedDisputeKey(e.target.checked ? disputeKey : undefined)}
+            />
+          </>
+        )}
+        {disputeEnd.status === 'unknown' && (
+          <Helper alert="error">{t('input.claimName.disputeFailed')}</Helper>
+        )}
         {needsTermsAcceptance && holder && <NameTerms terms={terms} acceptance={acceptance} />}
 
         {review ? (
@@ -233,12 +267,15 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
             data-testid="claim-name-confirm"
             disabled={
               !acknowledged ||
+              !acknowledgedDispute ||
               (!review?.complete && !acceptedIncomplete) ||
               (needsTermsAcceptance && !acceptance.acceptedTerms) ||
               checks.isFetching ||
               offer.isFetching ||
               claimTerms.isFetching ||
-              terms.isFetching
+              terms.isFetching ||
+              disputeEnd.isFetching ||
+              disputeEnd.status === 'unknown'
             }
             onClick={onConfirm}
           >

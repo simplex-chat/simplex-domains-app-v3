@@ -7,12 +7,17 @@ import { QuestionTooltip } from '@app/components/@molecules/QuestionTooltip/Ques
 import { safeDateObj } from '@app/utils/date'
 
 type Props = {
-  type: 'expiry' | 'grace-period' | 'registration' | 'parent-expiry' | 'parent-grace-period'
-  date: Date
+  type:
+    | 'expiry'
+    | 'grace-period'
+    | 'dispute-period'
+    | 'registration'
+    | 'parent-expiry'
+    | 'parent-grace-period'
   link?: string
   tooltip?: string
   supportLink?: string
-}
+} & ({ date: Date } | { note: string })
 
 const Container = styled.div(({ theme }) => [
   css`
@@ -60,9 +65,9 @@ const Body = styled.div(
   `,
 )
 
-export const ExpiryPanel = ({ type, date, link, tooltip, supportLink }: Props) => {
+export const ExpiryPanel = ({ type, link, tooltip, supportLink, ...value }: Props) => {
   const { t } = useTranslation('profile')
-  const _date = safeDateObj(date)
+  const _date = 'date' in value ? safeDateObj(value.date) : undefined
   const timestamp = type === 'expiry' ? _date?.getTime() : undefined
   return (
     <Container data-testid={`expiry-panel-${type}`} data-timestamp={timestamp}>
@@ -86,22 +91,30 @@ export const ExpiryPanel = ({ type, date, link, tooltip, supportLink }: Props) =
         {tooltip && <QuestionTooltip content={tooltip} link={supportLink} />}
       </Header>
       <Body>
-        <Typography fontVariant="body" color="text">
-          {_date?.toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          })}
-        </Typography>
-        <Typography fontVariant="small" color="grey">
-          {_date?.toLocaleTimeString(undefined, {
-            hour: 'numeric',
-            minute: 'numeric',
-            second: 'numeric',
-            timeZoneName: 'short',
-            hour12: false,
-          })}
-        </Typography>
+        {'note' in value ? (
+          <Typography fontVariant="body" color="text">
+            {value.note}
+          </Typography>
+        ) : (
+          <>
+            <Typography fontVariant="body" color="text">
+              {_date?.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              })}
+            </Typography>
+            <Typography fontVariant="small" color="grey">
+              {_date?.toLocaleTimeString(undefined, {
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric',
+                timeZoneName: 'short',
+                hour12: false,
+              })}
+            </Typography>
+          </>
+        )}
       </Body>
     </Container>
   )

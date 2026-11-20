@@ -34,8 +34,14 @@ vi.mock('@app/hooks/chain/useChainName', () => ({
   useChainName: () => 'goerli',
 }))
 
+const mockUseDisputeEnd = vi.fn()
+vi.mock('@app/hooks/useDisputeEnd', () => ({
+  useDisputeEnd: (parameters: unknown) => mockUseDisputeEnd(parameters),
+}))
+
 beforeEach(() => {
   vi.clearAllMocks()
+  mockUseDisputeEnd.mockReturnValue({ status: 'none', isFetching: false })
 })
 
 describe('useExpiryDetails', () => {
@@ -68,6 +74,58 @@ describe('useExpiryDetails', () => {
           expect.arrayContaining([expect.objectContaining({ type: 'registration' })]),
         )
       })
+    })
+  })
+
+  describe('dispute period', () => {
+    const expiryDetails = () =>
+      renderHook(() =>
+        useExpiryDetails({
+          name: 'test.testing',
+          details: {
+            expiryDate: new Date(3255803954000),
+            isLoading: false,
+          } as any,
+        }),
+      ).result.current
+
+    beforeEach(() => {
+      mockUseNameType.mockReturnValue({
+        data: 'eth-unwrapped-2ld',
+        isLoading: false,
+      })
+    })
+
+    it('should return the end of the dispute period while it lasts', () => {
+      const disputeEnd = new Date(Date.now() + 60_000)
+      mockUseDisputeEnd.mockReturnValue({ status: 'until', date: disputeEnd, isFetching: false })
+      expect(expiryDetails().data).toContainEqual(
+        expect.objectContaining({ type: 'dispute-period', date: disputeEnd }),
+      )
+    })
+
+    it('should return no dispute period without one', () => {
+      expect(expiryDetails().data?.map(({ type }) => type)).toEqual(['expiry', 'grace-period'])
+    })
+
+    it('should say that the dispute period could not be read', () => {
+      mockUseDisputeEnd.mockReturnValue({ status: 'unknown', isFetching: false })
+      expect(expiryDetails()).toMatchObject({ isDisputeEndUnknown: true })
+    })
+
+    it('should wait for the dispute period', () => {
+      mockUseDisputeEnd.mockReturnValue({ status: 'loading', isFetching: true })
+      expect(expiryDetails()).toMatchObject({ data: undefined, isLoading: true })
+    })
+
+    it('should read the dispute period only while enabled', () => {
+      renderHook(() =>
+        useExpiryDetails(
+          { name: 'test.testing', details: { isLoading: false } as any },
+          { enabled: false },
+        ),
+      )
+      expect(mockUseDisputeEnd).toHaveBeenCalledWith({ name: 'test.testing', enabled: false })
     })
   })
 

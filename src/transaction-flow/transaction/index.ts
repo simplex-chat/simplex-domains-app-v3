@@ -1,4 +1,5 @@
 import acceptClaimTerms from './acceptClaimTerms'
+import acceptRenewalTerms from './acceptRenewalTerms'
 import acceptTerms from './acceptTerms'
 import approveDnsRegistrar from './approveDnsRegistrar'
 import approveNameWrapper from './approveNameWrapper'
@@ -38,6 +39,7 @@ import wrapName from './wrapName'
 
 export const transactions = {
   acceptClaimTerms,
+  acceptRenewalTerms,
   acceptTerms,
   approveDnsRegistrar,
   approveNameWrapper,

@@ -86,7 +86,6 @@ export const ExpirySection = ({ name, details }: Props) => {
   const actions = useExpiryActions({
     name,
     expiryDetails: expiry.data,
-    ownerData: details.ownerData,
     wrapperData: details.wrapperData,
   })
   const { options: calendarOptions, makeEvent } = useCalendarOptions(`Renew ${name}`)
@@ -111,6 +110,13 @@ export const ExpirySection = ({ name, details }: Props) => {
               {expiry.data.map((item) => (
                 <ExpiryPanel key={item.type} {...(item as any)} />
               ))}
+              {expiry.isDisputeEndUnknown && (
+                <ExpiryPanel
+                  type="dispute-period"
+                  note={t('tabs.ownership.sections.expiry.panel.dispute-period.unknown')}
+                  tooltip={t('tabs.ownership.sections.expiry.panel.dispute-period.tooltip')}
+                />
+              )}
             </PanelsContainer>
           </Header>
           {!isOutOfGracePeriod ? (

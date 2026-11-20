@@ -1,5 +1,6 @@
 import { mockFunction, renderHook } from '@app/test-utils'
 
+import { keepPreviousData } from '@tanstack/react-query'
 import { keccak256, labelhash, sha256, stringToBytes } from 'viem'
 import { readContract } from 'viem/actions'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -10,10 +11,12 @@ import { useQuery } from '@app/utils/query/useQuery'
 
 import {
   getAcceptedClaimTermsQueryFn,
+  getAcceptedRenewalTermsQueryFn,
   getCommittedTermsQueryFn,
   getNameTermsQueryFn,
   getTermsTextQueryFn,
   parseTermsLink,
+  useAcceptedRenewalTerms,
   useNameTerms,
 } from './useNameTerms'
 
@@ -344,5 +347,67 @@ describe('getAcceptedClaimTermsQueryFn', () => {
     expect(await getAcceptedClaimTerms(HOLDER, undefined, 3n)).toBeNull()
     expect(await getAcceptedClaimTerms(HOLDER, RECIPIENT)).toBeNull()
     expect(mockReadContract).not.toHaveBeenCalled()
+  })
+})
+
+describe('getAcceptedRenewalTermsQueryFn', () => {
+  const getAcceptedRenewalTerms = (holder?: `0x${string}`, expires?: bigint) =>
+    getAcceptedRenewalTermsQueryFn(config)({
+      queryKey: [
+        { name: 'alice.testing', expires, duration: 31_536_000 },
+        1337,
+        holder,
+        undefined,
+        'getAcceptedRenewalTerms',
+      ],
+    } as never)
+
+  it("reads the holder's acceptance for a renewal from the current expiry", async () => {
+    mockReadContract.mockResolvedValueOnce(TERMS)
+    expect(await getAcceptedRenewalTerms(HOLDER, 2_000_000_000n)).toBe(TERMS)
+    expect(mockReadContract).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        address: NAME_POLICY,
+        functionName: 'acceptedRenewalTerms',
+        args: [BigInt(labelhash('alice')), HOLDER, 2_000_000_000n, 31_536_000n],
+      }),
+    )
+  })
+
+  it('reads nothing without a connected holder or an expiry', async () => {
+    expect(await getAcceptedRenewalTerms(undefined, 2_000_000_000n)).toBeNull()
+    expect(await getAcceptedRenewalTerms(HOLDER)).toBeNull()
+    expect(mockReadContract).not.toHaveBeenCalled()
+  })
+})
+
+describe('useAcceptedRenewalTerms', () => {
+  it('keeps the acceptance read for the last duration while it reads the next one', () => {
+    mockUseQuery.mockReturnValue({} as never)
+    renderHook(() =>
+      useAcceptedRenewalTerms({
+        name: 'alice.testing',
+        expires: 2_000_000_000n,
+        duration: 31_536_000,
+        enabled: true,
+      }),
+    )
+    expect(mockUseQuery).toHaveBeenCalledWith(
+      expect.objectContaining({ placeholderData: keepPreviousData }),
+    )
+  })
+
+  it('reads no acceptance before the expiry of the name is read', () => {
+    mockUseQuery.mockReturnValue({} as never)
+    renderHook(() =>
+      useAcceptedRenewalTerms({
+        name: 'alice.testing',
+        expires: undefined,
+        duration: 31_536_000,
+        enabled: true,
+      }),
+    )
+    expect(mockUseQuery).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
   })
 })

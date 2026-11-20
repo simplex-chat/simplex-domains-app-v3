@@ -7,8 +7,8 @@ import { useSearchParams } from 'next/navigation'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAccount, type UseAccountReturnType } from 'wagmi'
 
-import { useAbilities } from '@app/hooks/abilities/useAbilities'
 import { useBasicName } from '@app/hooks/useBasicName'
+import { useIsNameHolder } from '@app/hooks/useIsNameHolder'
 import { useTransactionFlow } from '@app/transaction-flow/TransactionFlowProvider'
 import type { RegistrationStatus } from '@app/utils/registrationStatus'
 
@@ -16,13 +16,13 @@ import { calculateRenewState, removeRenewParam, useRenew } from './useRenew'
 
 vi.mock('next/router', async () => await vi.importActual('next-router-mock'))
 vi.mock('@app/hooks/useBasicName')
-vi.mock('@app/hooks/abilities/useAbilities')
+vi.mock('@app/hooks/useIsNameHolder')
 vi.mock('wagmi')
 vi.mock('@app/transaction-flow/TransactionFlowProvider')
 vi.mock('next/navigation')
 
 const mockUseBasicName = mockFunction(useBasicName)
-const mockUseAbilities = mockFunction(useAbilities)
+const mockUseIsNameHolder = mockFunction(useIsNameHolder)
 const mockUseAccount = mockFunction(useAccount)
 const mockUseTransactionFlow = mockFunction(useTransactionFlow)
 const mockUseSearchParams = mockFunction(useSearchParams)
@@ -36,7 +36,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'disconnected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -53,7 +53,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -70,7 +70,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -87,7 +87,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -104,7 +104,7 @@ describe('calculateRenewState', () => {
         renewSeconds: null,
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -121,7 +121,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: true,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -130,7 +130,7 @@ describe('calculateRenewState', () => {
     ).toBe('idle')
   })
 
-  it('should return idle if abilities is loading', () => {
+  it('should return not-holder if the connected wallet does not hold the name', () => {
     expect(
       calculateRenewState({
         registrationStatus: 'registered',
@@ -138,7 +138,24 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: true,
+        isHolder: false,
+        isRouterReady: true,
+        name: 'name',
+        openedConnectModal: false,
+        openConnectModal: () => {},
+      }),
+    ).toBe('not-holder')
+  })
+
+  it('should return idle while the holding is read', () => {
+    expect(
+      calculateRenewState({
+        registrationStatus: 'registered',
+        isRegistrationStatusLoading: false,
+        renewSeconds: 123,
+        connectModalOpen: false,
+        accountStatus: 'connected' as UseAccountReturnType['status'],
+        isHolder: undefined,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -155,7 +172,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: false,
         name: 'name',
         openedConnectModal: false,
@@ -172,7 +189,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: '',
         openedConnectModal: false,
@@ -189,7 +206,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: true,
@@ -206,7 +223,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'disconnected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -223,7 +240,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -240,7 +257,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -257,7 +274,7 @@ describe('calculateRenewState', () => {
         renewSeconds: null,
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -275,7 +292,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'disconnected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -292,7 +309,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -310,7 +327,7 @@ describe('calculateRenewState', () => {
         renewSeconds: 123,
         connectModalOpen: false,
         accountStatus: 'disconnected' as UseAccountReturnType['status'],
-        isAbilitiesLoading: false,
+        isHolder: true,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -325,7 +342,7 @@ describe('calculateRenewState', () => {
       renewSeconds: 123,
       connectModalOpen: false,
       accountStatus: 'connected' as UseAccountReturnType['status'],
-      isAbilitiesLoading: false,
+      isHolder: true,
       isRouterReady: true,
       name: 'name',
       openedConnectModal: false,
@@ -480,8 +497,8 @@ describe('useRenew', () => {
       isLoading: false,
     })
 
-    mockUseAbilities.mockReturnValue({
-      data: { canSelfExtend: true },
+    mockUseIsNameHolder.mockReturnValue({
+      data: true,
       isLoading: false,
     })
 
@@ -522,8 +539,8 @@ describe('useRenew', () => {
 
     mockRouter.push('/test.eth?renew=94608000')
 
-    mockUseAbilities.mockReturnValue({
-      data: { canSelfExtend: true },
+    mockUseIsNameHolder.mockReturnValue({
+      data: true,
       isLoading: false,
     })
 
@@ -634,32 +651,39 @@ describe('useRenew', () => {
     expect(mockShowExtendNamesInput).not.toHaveBeenCalled()
   })
 
-  it('should handle non-self-extendable names', () => {
+  it('should tell a wallet that does not hold the name, without extending it', () => {
     mockRouter.push('/test.eth?renew=123')
-    mockUseAbilities.mockReturnValue({
-      data: { canSelfExtend: false },
+    mockUseIsNameHolder.mockReturnValue({
+      data: false,
       isLoading: false,
     })
 
-    renderHook(() => useRenew('test.eth'))
+    const { result } = renderHook(() => useRenew('test.eth'))
 
-    expect(mockShowExtendNamesInput).toHaveBeenCalledWith('extend-names-test.eth', {
-      names: ['test.eth'],
-      isSelf: false,
-      seconds: 31536000,
-    })
+    expect(mockUseIsNameHolder).toHaveBeenCalledWith({ name: 'test.eth', enabled: true })
+    expect(result.current).toBe('not-holder')
+    expect(mockShowExtendNamesInput).not.toHaveBeenCalled()
   })
 
-  it('should do nothing when abilities are loading', () => {
+  it('should do nothing while the holding is read', () => {
     mockRouter.push('/test.eth?renew=123')
-    mockUseAbilities.mockReturnValue({
-      data: { canSelfExtend: true },
+    mockUseIsNameHolder.mockReturnValue({
+      data: undefined,
       isLoading: true,
     })
 
+    const { result } = renderHook(() => useRenew('test.eth'))
+
+    expect(result.current).toBe('idle')
+    expect(mockShowExtendNamesInput).not.toHaveBeenCalled()
+  })
+
+  it('should not read the holding without a renewal in the URL', () => {
+    mockUseSearchParams.mockReturnValue({ get: () => null })
+
     renderHook(() => useRenew('test.eth'))
 
-    expect(mockShowExtendNamesInput).not.toHaveBeenCalled()
+    expect(mockUseIsNameHolder).toHaveBeenCalledWith({ name: 'test.eth', enabled: false })
   })
 
   it('should do nothing when router is not ready', () => {

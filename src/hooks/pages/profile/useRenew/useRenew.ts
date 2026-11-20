@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react'
 import { match } from 'ts-pattern'
 import { useAccount } from 'wagmi'
 
-import { useAbilities } from '@app/hooks/abilities/useAbilities'
 import { useBasicName } from '@app/hooks/useBasicName'
+import { useIsNameHolder } from '@app/hooks/useIsNameHolder'
 import { useRouterWithHistory } from '@app/hooks/useRouterWithHistory'
 import { validateExtendNamesDuration } from '@app/transaction-flow/input/ExtendNames/utils/validateExtendNamesDuration'
 import { useTransactionFlow } from '@app/transaction-flow/TransactionFlowProvider'
 import { RegistrationStatus } from '@app/utils/registrationStatus'
 
-type RenewStatus = 'connect-user' | 'display-extend-names' | 'idle'
+type RenewStatus = 'connect-user' | 'display-extend-names' | 'not-holder' | 'idle'
 
 export const calculateRenewState = ({
   registrationStatus,
@@ -20,7 +20,7 @@ export const calculateRenewState = ({
   openConnectModal,
   connectModalOpen,
   accountStatus,
-  isAbilitiesLoading,
+  isHolder,
   isRouterReady,
   name,
   openedConnectModal,
@@ -31,7 +31,7 @@ export const calculateRenewState = ({
   connectModalOpen: boolean
   openConnectModal: ReturnType<typeof useConnectModal>['openConnectModal']
   accountStatus: ReturnType<typeof useAccount>['status']
-  isAbilitiesLoading: boolean
+  isHolder?: boolean
   isRouterReady: boolean
   name?: string
   openedConnectModal: boolean
@@ -48,8 +48,8 @@ export const calculateRenewState = ({
     !openedConnectModal
 
   if (isRenewActive && accountStatus === 'disconnected' && !!openConnectModal) return 'connect-user'
-  if (isRenewActive && accountStatus === 'connected' && !isAbilitiesLoading)
-    return 'display-extend-names'
+  if (isRenewActive && accountStatus === 'connected' && isHolder) return 'display-extend-names'
+  if (isRenewActive && accountStatus === 'connected' && isHolder === false) return 'not-holder'
   return 'idle'
 }
 
@@ -69,7 +69,6 @@ export const removeRenewParam = ({
 export function useRenew(name: string) {
   const router = useRouterWithHistory()
   const { registrationStatus, isLoading: isBasicNameLoading, isWrapped } = useBasicName({ name })
-  const abilities = useAbilities({ name })
   const searchParams = useSearchParams()
   const { status } = useAccount()
 
@@ -79,9 +78,9 @@ export function useRenew(name: string) {
   const { usePreparedDataInput } = useTransactionFlow()
   const showExtendNamesInput = usePreparedDataInput('ExtendNames')
 
-  const { data: { canSelfExtend } = {}, isLoading: isAbilitiesLoading } = abilities
-
   const renewSeconds = validateExtendNamesDuration({ duration: searchParams.get('renew') })
+
+  const { data: isHolder } = useIsNameHolder({ name, enabled: !!renewSeconds })
 
   const renewState = calculateRenewState({
     registrationStatus,
@@ -89,7 +88,7 @@ export function useRenew(name: string) {
     renewSeconds,
     connectModalOpen,
     accountStatus: status,
-    isAbilitiesLoading,
+    isHolder,
     name,
     isRouterReady: router.isReady,
     openConnectModal,
@@ -105,15 +104,18 @@ export function useRenew(name: string) {
       .with('display-extend-names', () => {
         showExtendNamesInput(`extend-names-${name}`, {
           names: [name],
-          isSelf: canSelfExtend,
+          isSelf: true,
           seconds: renewSeconds!,
           hasWrapped: isWrapped,
         })
         const params = removeRenewParam({ query: router.query })
         router.replace(`/${name}${params}`)
       })
+      .with('not-holder', () => {})
       .with('idle', () => {})
       .exhaustive()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renewState])
+
+  return renewState
 }

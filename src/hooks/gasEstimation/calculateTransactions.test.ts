@@ -1,10 +1,10 @@
-import { encodeAbiParameters, keccak256 } from 'viem'
+import { encodeAbiParameters, keccak256, labelhash, pad, toHex } from 'viem'
 import { describe, expect, it } from 'vitest'
 
 import { makeCommitment } from '@ensdomains/ensjs/utils'
 
 import { mapUserState } from '../chain/useEstimateGasWithStateOverride'
-import { calculateTransactions } from './calculateTransactions'
+import { acceptedRenewalTermsOverride, calculateTransactions } from './calculateTransactions'
 
 // Minimal RegistrationParameters fixture — only the fields makeCommitment
 // reads matter for slot-layout assertions.
@@ -20,22 +20,7 @@ const baseParams = {
 } as unknown as Parameters<typeof calculateTransactions>[0]['registrationParams']
 
 describe('calculateTransactions', () => {
-  // BINDING — DO NOT CHANGE WITHOUT MATCHING CONTRACT CHANGE.
-  //
-  // SimplexController is UUPS-upgradeable on OpenZeppelin v4.9.3. The
-  // inheritance chain (Initializable + ContextUpgradeable + OwnableUpgradeable
-  // + Ownable2StepUpgradeable + ERC1967UpgradeUpgradeable + UUPSUpgradeable)
-  // consumes 251 storage slots of __gap padding + owner state before any of
-  // the controller's own variables. `commitments` is declared 10th in
-  // SimplexController.sol (after ens, base, minCommitmentAge,
-  // maxCommitmentAge, reverseRegistrar, defaultReverseRegistrar, prices,
-  // tldNode, tldSuffix), so it lands at slot 260. Verified on mainnet via
-  // eth_getStorageAt.
-  //
-  // Symptom of getting this wrong: `eth_estimateGas` for the register tx
-  // reverts during state-override simulation, the gas estimate is treated as
-  // 0n, and the user sees "0.0000 ETH" as the network fee.
-  it('writes the simulated commitment to commitments-mapping slot 260, not slot 1 (upstream ENS)', () => {
+  it('overrides commitments[commitment] at slot 160 with the given timestamp', () => {
     const result = calculateTransactions({
       registrationParams: baseParams,
       ethRegistrarControllerAddress: '0x000000000000000000000000000000000000ca11',
@@ -43,11 +28,16 @@ describe('calculateTransactions', () => {
       price: { base: 0n, premium: 0n },
     })
 
-    expect(result).not.toBeNull()
     const registerTx = result!.find((t) => t.name === 'registerName')
-    expect(registerTx).toBeDefined()
-    const controllerOverride = registerTx!.stateOverride![0]
-    expect(controllerOverride.stateDiff![0].slot).toBe(260)
+    const commitmentKey = keccak256(
+      encodeAbiParameters(
+        [{ type: 'bytes32' }, { type: 'uint256' }],
+        [makeCommitment(baseParams!), 160n],
+      ),
+    )
+    expect(mapUserState(registerTx!.stateOverride![0].stateDiff!)).toEqual({
+      [commitmentKey]: pad(toHex(1_700_000_000n)),
+    })
   })
 
   it('returns null when any required input is missing', () => {
@@ -77,7 +67,7 @@ describe('calculateTransactions', () => {
     ).toBeNull()
   })
 
-  it('commits through the name policy and simulates the acceptance at acceptedTerms, slot 103', () => {
+  it('commits through the name policy and simulates the acceptance at acceptedTerms, slot 2', () => {
     const terms = { kind: 'community', hash: `0x${'77'.repeat(32)}` } as const
     const namePolicyAddress = '0x0000000000000000000000000000000000004444'
     const result = calculateTransactions({
@@ -94,7 +84,7 @@ describe('calculateTransactions', () => {
     const acceptedTermsSlot = keccak256(
       encodeAbiParameters(
         [{ type: 'bytes32' }, { type: 'uint256' }],
-        [makeCommitment(baseParams!), 103n],
+        [makeCommitment(baseParams!), 2n],
       ),
     )
     const acceptedTermsKey = keccak256(
@@ -125,5 +115,36 @@ describe('calculateTransactions', () => {
       price: { base: 1n, premium: 0n },
     })
     expect(result?.map((t) => t.name)).toEqual(['commitName', 'registerName'])
+  })
+})
+
+describe('acceptedRenewalTermsOverride', () => {
+  it("simulates the holder's renewal acceptance at acceptedRenewalTerms, slot 8", () => {
+    const terms = { kind: 'general', hash: `0x${'77'.repeat(32)}` } as const
+    const namePolicyAddress = '0x0000000000000000000000000000000000004444'
+    const holder = baseParams!.owner
+    const override = acceptedRenewalTermsOverride({
+      namePolicyAddress,
+      holder,
+      renewal: { name: 'somename.testing', expires: 2_000_000_000n, duration: 31_536_000, terms },
+    })
+
+    const tokenSlot = keccak256(
+      encodeAbiParameters(
+        [{ type: 'uint256' }, { type: 'uint256' }],
+        [BigInt(labelhash('somename')), 8n],
+      ),
+    )
+    const holderSlot = keccak256(
+      encodeAbiParameters([{ type: 'address' }, { type: 'bytes32' }], [holder, tokenSlot]),
+    )
+    const expiresSlot = keccak256(
+      encodeAbiParameters([{ type: 'uint256' }, { type: 'bytes32' }], [2_000_000_000n, holderSlot]),
+    )
+    const durationSlot = keccak256(
+      encodeAbiParameters([{ type: 'uint256' }, { type: 'bytes32' }], [31_536_000n, expiresSlot]),
+    )
+    expect(override.address).toBe(namePolicyAddress)
+    expect(mapUserState(override.stateDiff)).toEqual({ [durationSlot]: terms.hash })
   })
 })

@@ -74,7 +74,7 @@ describe('NameTerms', () => {
     const unset = nameTerms({ hash: undefined, text: undefined })
     render(<NameTerms terms={unset} acceptance={acceptance()} />)
     expect(screen.getByTestId('terms-unset')).toHaveTextContent(
-      "names can't be registered or received now",
+      "names can't be registered, received or renewed now",
     )
     expect(screen.queryByTestId('terms-retry')).not.toBeInTheDocument()
   })
