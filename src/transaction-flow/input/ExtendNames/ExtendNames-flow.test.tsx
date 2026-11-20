@@ -521,32 +521,46 @@ describe('Extendnames', () => {
       error,
       isLoading: false,
     })
-  it('should name the error of a renewal that reverts, and offer no Next for it', () => {
-    const abi = parseAbi(['error TermsMismatch(bytes32 accepted, bytes32 current)'])
-    estimateFailure(
-      new RpcRequestError({
-        body: {},
-        url: '',
-        error: {
-          code: 3,
-          message: 'execution reverted',
-          data: encodeErrorResult({ abi, errorName: 'TermsMismatch', args: [TERMS, TERMS] }),
-        },
-      } as never),
-    )
-    render(
-      <ExtendNames
-        {...{
-          data: { names: ['nick.eth'], isSelf: true, hasWrapped: false },
-          dispatch: () => null,
-          onDismiss: () => null,
-        }}
-      />,
-    )
-    expect(screen.getByText('TermsMismatch')).toBeVisible()
-    expect(screen.queryByText('input.extendNames.gasLimitError')).not.toBeInTheDocument()
-    expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
-  })
+  it.each([
+    ['NotHolder', ['nick'], 'notHolder'],
+    ['TermsMismatch', [TERMS, TERMS], 'termsMismatch'],
+    ['ExpiryMismatch', [1n, 2n], 'expiryMismatch'],
+    ['TermsNotAccepted', ['nick'], 'termsNotAccepted'],
+  ] as const)(
+    'should say why a renewal that reverts with %s fails, and offer no Next for it',
+    (errorName, args, text) => {
+      const abi = parseAbi([
+        'error NotHolder(string name)',
+        'error TermsMismatch(bytes32 accepted, bytes32 current)',
+        'error ExpiryMismatch(uint256 named, uint256 current)',
+        'error TermsNotAccepted(string name)',
+      ])
+      estimateFailure(
+        new RpcRequestError({
+          body: {},
+          url: '',
+          error: {
+            code: 3,
+            message: 'execution reverted',
+            data: encodeErrorResult({ abi, errorName, args } as never),
+          },
+        } as never),
+      )
+      render(
+        <ExtendNames
+          {...{
+            data: { names: ['nick.eth'], isSelf: true, hasWrapped: false },
+            dispatch: () => null,
+            onDismiss: () => null,
+          }}
+        />,
+      )
+      expect(screen.getByText(`input.extendNames.errors.${text}`)).toBeVisible()
+      expect(screen.queryByText(errorName)).not.toBeInTheDocument()
+      expect(screen.queryByText('input.extendNames.gasLimitError')).not.toBeInTheDocument()
+      expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
+    },
+  )
   it('should keep Next for an estimate that fails for another reason', () => {
     estimateFailure(
       new InvalidInputRpcError(
