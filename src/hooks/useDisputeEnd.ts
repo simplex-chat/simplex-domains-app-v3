@@ -38,8 +38,8 @@ const toDisputeEnd = (
   blockTimestamp: { data?: bigint; isLoading: boolean },
 ): DisputeEnd => {
   if (end.isLoading) return { status: 'loading' }
-  if (end.isError) return { status: 'unknown' }
-  if (!end.data) return { status: 'none' }
+  if (end.data === undefined) return end.isError ? { status: 'unknown' } : { status: 'none' }
+  if (end.data === null) return { status: 'none' }
   if (blockTimestamp.isLoading) return { status: 'loading' }
   if (blockTimestamp.data === undefined) return { status: 'unknown' }
   return BigInt(end.data.getTime()) > blockTimestamp.data
