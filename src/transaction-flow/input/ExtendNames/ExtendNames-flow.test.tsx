@@ -1,6 +1,6 @@
 import { mockFunction, render, screen, userEvent } from '@app/test-utils'
 
-import { encodeErrorResult, parseAbi, parseEther, RawContractError } from 'viem'
+import { encodeErrorResult, parseAbi, parseEther, RpcRequestError } from 'viem'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAccount, useBalance } from 'wagmi'
 
@@ -507,15 +507,19 @@ describe('Extendnames', () => {
       unmount()
     }
   })
-  it('should show why the estimate failed instead of a low balance', () => {
-    const abi = parseAbi(['error TermsMismatch(bytes32 accepted, bytes32 current)'])
+  const estimateFailure = (error: { code: number; message: string; data?: `0x${string}` }) =>
     mockUseEstimateGasWithStateOverride.mockReturnValueOnce({
       data: { gasEstimate: 0n, gasCost: 0n },
       gasPrice: 100n,
-      error: new RawContractError({
-        data: encodeErrorResult({ abi, errorName: 'TermsMismatch', args: [TERMS, TERMS] }),
-      }),
+      error: new RpcRequestError({ body: {}, url: '', error } as never),
       isLoading: false,
+    })
+  it('should name a renewal the contracts refuse, and offer no Next for it', () => {
+    const abi = parseAbi(['error TermsMismatch(bytes32 accepted, bytes32 current)'])
+    estimateFailure({
+      code: 3,
+      message: 'execution reverted',
+      data: encodeErrorResult({ abi, errorName: 'TermsMismatch', args: [TERMS, TERMS] }),
     })
     render(
       <ExtendNames
@@ -528,6 +532,21 @@ describe('Extendnames', () => {
     )
     expect(screen.getByText('TermsMismatch')).toBeVisible()
     expect(screen.queryByText('input.extendNames.gasLimitError')).not.toBeInTheDocument()
+    expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
+  })
+  it('should keep Next for an estimate that fails for another reason', () => {
+    estimateFailure({ code: -32000, message: 'header not found' })
+    render(
+      <ExtendNames
+        {...{
+          data: { names: ['nick.eth'], isSelf: true, hasWrapped: false },
+          dispatch: () => null,
+          onDismiss: () => null,
+        }}
+      />,
+    )
+    expect(screen.getByText('header not found')).toBeVisible()
+    expect(screen.getByTestId('extend-names-confirm')).not.toHaveAttribute('disabled')
   })
   it('should wait for a stored acceptance before showing the terms', () => {
     mockExpiryAhead(ONE_YEAR)

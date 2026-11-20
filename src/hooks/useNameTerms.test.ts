@@ -1,5 +1,6 @@
 import { mockFunction, renderHook } from '@app/test-utils'
 
+import { keepPreviousData } from '@tanstack/react-query'
 import { keccak256, labelhash, sha256, stringToBytes } from 'viem'
 import { readContract } from 'viem/actions'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -15,6 +16,7 @@ import {
   getNameTermsQueryFn,
   getTermsTextQueryFn,
   parseTermsLink,
+  useAcceptedRenewalTerms,
   useNameTerms,
 } from './useNameTerms'
 
@@ -402,5 +404,22 @@ describe('getAcceptedRenewalTermsQueryFn', () => {
     expect(await getAcceptedRenewalTerms(undefined, 2_000_000_000n)).toBeNull()
     expect(await getAcceptedRenewalTerms(HOLDER)).toBeNull()
     expect(mockReadContract).not.toHaveBeenCalled()
+  })
+})
+
+describe('useAcceptedRenewalTerms', () => {
+  it('keeps the acceptance read for the last duration while it reads the next one', () => {
+    mockUseQuery.mockReturnValue({} as never)
+    renderHook(() =>
+      useAcceptedRenewalTerms({
+        name: 'alice.testing',
+        expires: 2_000_000_000n,
+        duration: 31_536_000,
+        enabled: true,
+      }),
+    )
+    expect(mockUseQuery).toHaveBeenCalledWith(
+      expect.objectContaining({ placeholderData: keepPreviousData }),
+    )
   })
 })
