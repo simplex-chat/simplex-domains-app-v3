@@ -116,6 +116,12 @@ describe('useDisputeEnd', () => {
     })
   })
 
+  it('keeps the last dispute end read when a later read fails', () => {
+    const end = new Date(Date.now() + 60_000)
+    expect(disputeEnd({ data: end, isError: true })).toMatchObject({ status: 'until', date: end })
+    expect(disputeEnd({ data: null, isError: true })).toMatchObject({ status: 'none' })
+  })
+
   it('reads nothing for a name that cannot have a dispute period', () => {
     expect(disputeEnd({}, {}, 'mobile.alice.testing')).toMatchObject({ status: 'none' })
     expect(mockUseQuery).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))

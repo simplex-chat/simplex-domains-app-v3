@@ -108,6 +108,11 @@ describe('useExpiryDetails', () => {
       expect(expiryDetails().data?.map(({ type }) => type)).toEqual(['expiry', 'grace-period'])
     })
 
+    it('should say that the dispute period could not be read', () => {
+      mockUseDisputeEnd.mockReturnValue({ status: 'unknown', isFetching: false })
+      expect(expiryDetails()).toMatchObject({ isDisputeEndUnknown: true })
+    })
+
     it('should wait for the dispute period', () => {
       mockUseDisputeEnd.mockReturnValue({ status: 'loading', isFetching: true })
       expect(expiryDetails()).toMatchObject({ data: undefined, isLoading: true })

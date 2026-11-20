@@ -18,6 +18,12 @@ vi.mock('./hooks/useExpiryDetails', () => ({
         ],
         isLoading: false,
       }
+    if (name === 'test.testing')
+      return {
+        data: [{ type: 'expiry', date: new Date(3255803954000) }],
+        isLoading: false,
+        isDisputeEndUnknown: true,
+      }
   },
 }))
 
@@ -61,6 +67,13 @@ describe('ExpirySection', () => {
     await waitFor(() => {
       expect(screen.getByText('tabs.more.misc.bankless.title')).toBeVisible()
     })
+  })
+
+  it('should say that the dispute period could not be read', () => {
+    render(<ExpirySection name="test.testing" details={{} as any} />)
+    expect(screen.getByTestId('expiry-panel-dispute-period')).toHaveTextContent(
+      'tabs.ownership.sections.expiry.panel.dispute-period.unknown',
+    )
   })
 
   it('should be able to call show extend modal', async () => {
