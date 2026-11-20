@@ -27,6 +27,26 @@ export const getDisputeEndQueryFn =
     return disputeUntil === 0n ? null : new Date(Number(disputeUntil) * 1000)
   }
 
+export type DisputeEnd =
+  | { status: 'loading' }
+  | { status: 'unknown' }
+  | { status: 'none' }
+  | { status: 'until'; date: Date }
+
+const toDisputeEnd = (
+  end: { data?: Date | null; isLoading: boolean; isError: boolean },
+  blockTimestamp: { data?: bigint; isLoading: boolean },
+): DisputeEnd => {
+  if (end.isLoading) return { status: 'loading' }
+  if (end.isError) return { status: 'unknown' }
+  if (!end.data) return { status: 'none' }
+  if (blockTimestamp.isLoading) return { status: 'loading' }
+  if (blockTimestamp.data === undefined) return { status: 'unknown' }
+  return BigInt(end.data.getTime()) > blockTimestamp.data
+    ? { status: 'until', date: end.data }
+    : { status: 'none' }
+}
+
 export const useDisputeEnd = ({ name, enabled = true }: { name: string; enabled?: boolean }) => {
   const initialOptions = useQueryOptions({
     params: { name },
@@ -34,19 +54,14 @@ export const useDisputeEnd = ({ name, enabled = true }: { name: string; enabled?
     queryDependencyType: 'standard',
     queryFn: getDisputeEndQueryFn,
   })
+  const isRead = enabled && getSnrcTokenId(name) !== undefined
   const query = useQuery(
-    queryOptions({ queryKey: initialOptions.queryKey, queryFn: initialOptions.queryFn, enabled }),
+    queryOptions({
+      queryKey: initialOptions.queryKey,
+      queryFn: initialOptions.queryFn,
+      enabled: isRead,
+    }),
   )
-  const blockTimestamp = useBlockTimestamp({ enabled })
-  return {
-    ...query,
-    data:
-      query.data &&
-      blockTimestamp.data !== undefined &&
-      BigInt(query.data.getTime()) > blockTimestamp.data
-        ? query.data
-        : undefined,
-    isLoading: query.isLoading || blockTimestamp.isLoading,
-    isError: query.isError || blockTimestamp.isError,
-  }
+  const blockTimestamp = useBlockTimestamp({ enabled: isRead && !!query.data })
+  return { ...toDisputeEnd(query, blockTimestamp), isFetching: query.isFetching }
 }

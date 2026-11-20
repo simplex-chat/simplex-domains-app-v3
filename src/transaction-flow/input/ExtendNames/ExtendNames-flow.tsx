@@ -240,7 +240,8 @@ const ExtendNames = ({
   const isTooEarly = maxSeconds !== undefined && maxSeconds < minSeconds
   const { reservedNames, isLoading: isReservedLoading } = useReservedNames({ names })
   const isReserved = reservedNames.length > 0
-  const { data: disputeEnd, isLoading: isDisputeEndLoading } = useDisputeEnd({ name: names[0] })
+  const disputeEnd = useDisputeEnd({ name: names[0] })
+  const disputeEndDate = disputeEnd.status === 'until' ? disputeEnd.date : undefined
 
   const {
     data: { gasEstimate: estimatedGasLimit, gasCost: transactionFee },
@@ -274,7 +275,7 @@ const ExtendNames = ({
       totalRentFee > 0n &&
       !isTooEarly &&
       !isReserved &&
-      !disputeEnd,
+      !disputeEndDate,
   })
 
   const previousTransactionFee = usePreviousDistinct(transactionFee) || 0n
@@ -319,7 +320,7 @@ const ExtendNames = ({
     isExpiryEnabledAndLoading ||
     isEthPriceLoading ||
     isReservedLoading ||
-    isDisputeEndLoading
+    disputeEnd.status === 'loading'
   const isRegisterLoading = isPriceLoading || (isEstimateGasLoading && !estimateGasLimitError)
 
   const { title, alert, buttonProps } = match(view)
@@ -351,8 +352,8 @@ const ExtendNames = ({
           isTooEarly ||
           isReserved ||
           isReservedLoading ||
-          !!disputeEnd ||
-          isDisputeEndLoading,
+          !!disputeEndDate ||
+          disputeEnd.status === 'loading',
         onClick: () => {
           if (!priceData) return
           const transactions = createTransactionItem('extendNames', {
@@ -404,10 +405,10 @@ const ExtendNames = ({
           )
           .with(
             ['registration', false],
-            () => !!disputeEnd,
+            () => !!disputeEndDate,
             () => (
               <Helper alert="info" data-testid="extend-names-dispute-period">
-                {t('input.extendNames.disputePeriod', { date: formatFullExpiry(disputeEnd) })}
+                {t('input.extendNames.disputePeriod', { date: formatFullExpiry(disputeEndDate) })}
               </Helper>
             ),
           )

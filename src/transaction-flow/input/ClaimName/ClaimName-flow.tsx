@@ -101,7 +101,7 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
     checks.isLoading ||
     terms.isLoading ||
     claimTerms.isLoading ||
-    disputeEnd.isLoading
+    disputeEnd.status === 'loading'
   )
     return <TransactionLoader />
 
@@ -118,10 +118,10 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
     !!root?.customResolver ||
     !!root?.records.some(({ resolver }) => !(clearRecords && resolver === clearResolver))
   const acknowledged = !!reviewKey && (!staysAfterClaim || acknowledgedReview === reviewKey)
-  const disputeKey =
-    disputeEnd.data && holder ? `${disputeEnd.data.getTime()} ${holder}` : undefined
+  const disputeEndDate = disputeEnd.status === 'until' ? disputeEnd.date : undefined
+  const disputeKey = disputeEndDate && holder ? `${disputeEndDate.getTime()} ${holder}` : undefined
   const acknowledgedDispute =
-    !disputeEnd.data || (!!disputeKey && acknowledgedDisputeKey === disputeKey)
+    !disputeEndDate || (!!disputeKey && acknowledgedDisputeKey === disputeKey)
 
   const onConfirm = () => {
     if (!holder || !review) return
@@ -163,12 +163,12 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
           </Helper>
         )}
         <Typography>{t('input.claimName.description', { name })}</Typography>
-        {disputeEnd.data && (
+        {disputeEndDate && (
           <>
             <Helper alert="warning">
               {t('input.claimName.disputePeriod', {
                 name,
-                date: formatFullExpiry(disputeEnd.data),
+                date: formatFullExpiry(disputeEndDate),
               })}
             </Helper>
             <CheckboxRow
@@ -180,7 +180,9 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
             />
           </>
         )}
-        {disputeEnd.isError && <Helper alert="error">{t('input.claimName.disputeFailed')}</Helper>}
+        {disputeEnd.status === 'unknown' && (
+          <Helper alert="error">{t('input.claimName.disputeFailed')}</Helper>
+        )}
         {needsTermsAcceptance && holder && <NameTerms terms={terms} acceptance={acceptance} />}
 
         {review ? (
@@ -273,7 +275,7 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
               claimTerms.isFetching ||
               terms.isFetching ||
               disputeEnd.isFetching ||
-              disputeEnd.isError
+              disputeEnd.status === 'unknown'
             }
             onClick={onConfirm}
           >
