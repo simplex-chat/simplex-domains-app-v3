@@ -300,6 +300,7 @@ const ExtendNames = ({
         }
       : undefined
   const acceptedRenewal = acceptance.acceptedTerms && renewal
+  const namePolicyAddress = getNamePolicyAddress(chainId)
 
   const {
     data: { gasCost: transactionFee },
@@ -326,14 +327,8 @@ const ExtendNames = ({
             // the value will only be used if totalRentFee is defined, dw
             balance: totalRentFee ? totalRentFee + parseEther('10') : 0n,
           },
-          ...(renewal
-            ? [
-                acceptedRenewalTermsOverride({
-                  namePolicyAddress: getNamePolicyAddress(chainId)!,
-                  holder: address!,
-                  renewal,
-                }),
-              ]
+          ...(renewal && namePolicyAddress
+            ? [acceptedRenewalTermsOverride({ namePolicyAddress, holder: address!, renewal })]
             : []),
         ],
       },
