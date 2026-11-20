@@ -389,7 +389,8 @@ const ExtendNames = ({
     isExpiryEnabledAndLoading ||
     isEthPriceLoading ||
     isReservedLoading ||
-    disputeEnd.status === 'loading'
+    disputeEnd.status === 'loading' ||
+    renewalTerms.isLoading
   const isRegisterLoading = isPriceLoading || (isEstimateGasLoading && !estimateGasLimitError)
 
   const { title, alert, buttonProps } = match(view)
