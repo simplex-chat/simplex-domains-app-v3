@@ -1,6 +1,6 @@
 import { mockFunction, render, screen, userEvent } from '@app/test-utils'
 
-import { parseEther } from 'viem'
+import { encodeErrorResult, parseAbi, parseEther, RawContractError } from 'viem'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAccount, useBalance } from 'wagmi'
 
@@ -498,5 +498,49 @@ describe('Extendnames', () => {
       expect(!!screen.queryByText('input.extendNames.gasLimitError')).toBe(disabled)
       unmount()
     }
+  })
+  it('should show why the estimate failed instead of a low balance', () => {
+    const abi = parseAbi(['error TermsMismatch(bytes32 accepted, bytes32 current)'])
+    mockUseEstimateGasWithStateOverride.mockReturnValueOnce({
+      data: { gasEstimate: 0n, gasCost: 0n },
+      gasPrice: 100n,
+      error: new RawContractError({
+        data: encodeErrorResult({ abi, errorName: 'TermsMismatch', args: [TERMS, TERMS] }),
+      }),
+      isLoading: false,
+    })
+    render(
+      <ExtendNames
+        {...{
+          data: { names: ['nick.eth'], isSelf: true, hasWrapped: false },
+          dispatch: () => null,
+          onDismiss: () => null,
+        }}
+      />,
+    )
+    expect(screen.getByText('TermsMismatch')).toBeVisible()
+    expect(screen.queryByText('input.extendNames.gasLimitError')).not.toBeInTheDocument()
+  })
+  it('should wait for a stored acceptance before showing the terms', () => {
+    mockExpiryAhead(ONE_YEAR)
+    mockUseNameTerms.mockReturnValue(
+      nameTerms({ required: true, kind: 'general', hash: TERMS, text: 'the terms' }),
+    )
+    mockUseAcceptedRenewalTerms.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isFetching: true,
+    })
+    render(
+      <ExtendNames
+        {...{
+          data: { names: ['nick.testing'], isSelf: true, hasWrapped: false },
+          dispatch: () => null,
+          onDismiss: () => null,
+        }}
+      />,
+    )
+    expect(screen.queryByTestId('terms')).not.toBeInTheDocument()
+    expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
   })
 })
