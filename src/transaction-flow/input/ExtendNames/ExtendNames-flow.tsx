@@ -356,7 +356,10 @@ const ExtendNames = ({
   const previousTransactionFee = usePreviousDistinct(transactionFee) || 0n
   const isBalanceShort =
     !!balance && balance.value < calculateValueWithBuffer(totalRentFee) + transactionFee
-  const estimateError = estimateGasLimitError && getReadableError(estimateGasLimitError)
+  const estimateError =
+    estimateGasLimitError &&
+    (getReadableError(estimateGasLimitError)?.message ??
+      t('transaction.error.unknown', { ns: 'common' }))
   const estimateErrorName = getRevertErrorName(estimateGasLimitError)
   const isRenewalReverted = !!estimateErrorName && RENEWAL_REVERTS.includes(estimateErrorName)
 
@@ -548,7 +551,7 @@ const ExtendNames = ({
                 {isBalanceShort && (
                   <Helper alert="warning">{t('input.extendNames.gasLimitError')}</Helper>
                 )}
-                {estimateError && <Helper alert="error">{estimateError.message}</Helper>}
+                {estimateError && <Helper alert="error">{estimateError}</Helper>}
               </GasEstimationCacheableComponent>
             </>
           ))}
