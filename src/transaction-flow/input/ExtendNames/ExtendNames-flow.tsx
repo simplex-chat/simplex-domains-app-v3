@@ -238,10 +238,16 @@ const ExtendNames = ({
       ? Number(blockTimestamp / 1000n) + MAX_REGISTRATION_DURATION - Number(expiryData.expiry.value)
       : undefined
   const isTooEarly = maxSeconds !== undefined && maxSeconds < minSeconds
+  const earliestExtension =
+    isTooEarly && expiryDate
+      ? new Date(expiryDate.getTime() - (MAX_REGISTRATION_DURATION - minSeconds) * 1000)
+      : undefined
   const { reservedNames, isLoading: isReservedLoading } = useReservedNames({ names })
   const isReserved = reservedNames.length > 0
   const disputeEnd = useDisputeEnd({ name: names[0] })
   const disputeEndDate = disputeEnd.status === 'until' ? disputeEnd.date : undefined
+  const isDisputeEndLater =
+    !!disputeEndDate && !(earliestExtension && earliestExtension > disputeEndDate)
 
   const {
     data: { gasEstimate: estimatedGasLimit, gasCost: transactionFee },
@@ -404,7 +410,7 @@ const ExtendNames = ({
           )
           .with(
             ['registration', false],
-            () => !!disputeEndDate,
+            () => isDisputeEndLater,
             () => (
               <Helper alert="info" data-testid="extend-names-dispute-period">
                 {t('input.extendNames.disputePeriod', { date: formatFullExpiry(disputeEndDate) })}
@@ -414,16 +420,11 @@ const ExtendNames = ({
           .with(
             ['registration', false],
             () => isTooEarly,
-            () => {
-              const earliestExtension = new Date(
-                expiryDate!.getTime() - (MAX_REGISTRATION_DURATION - minSeconds) * 1000,
-              )
-              return (
-                <Helper alert="info" data-testid="extend-names-too-early">
-                  {t('input.extendNames.tooEarly', { date: formatExpiry(earliestExtension) })}
-                </Helper>
-              )
-            },
+            () => (
+              <Helper alert="info" data-testid="extend-names-too-early">
+                {t('input.extendNames.tooEarly', { date: formatExpiry(earliestExtension!) })}
+              </Helper>
+            ),
           )
           .with(
             ['registration', false],
