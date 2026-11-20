@@ -245,9 +245,8 @@ const ExtendNames = ({
   const { reservedNames, isLoading: isReservedLoading } = useReservedNames({ names })
   const isReserved = reservedNames.length > 0
   const disputeEnd = useDisputeEnd({ name: names[0] })
-  const disputeEndDate = disputeEnd.status === 'until' ? disputeEnd.date : undefined
   const isDisputeEndLater =
-    !!disputeEndDate && !(earliestExtension && earliestExtension > disputeEndDate)
+    !!disputeEnd.date && !(earliestExtension && earliestExtension > disputeEnd.date)
 
   const {
     data: { gasEstimate: estimatedGasLimit, gasCost: transactionFee },
@@ -413,7 +412,7 @@ const ExtendNames = ({
             () => isDisputeEndLater,
             () => (
               <Helper alert="info" data-testid="extend-names-dispute-period">
-                {t('input.extendNames.disputePeriod', { date: formatFullExpiry(disputeEndDate) })}
+                {t('input.extendNames.disputePeriod', { date: formatFullExpiry(disputeEnd.date) })}
               </Helper>
             ),
           )

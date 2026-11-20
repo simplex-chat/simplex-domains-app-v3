@@ -28,9 +28,7 @@ export const getDisputeEndQueryFn =
   }
 
 export type DisputeEnd =
-  | { status: 'loading' }
-  | { status: 'unknown' }
-  | { status: 'none' }
+  | { status: 'loading' | 'unknown' | 'none'; date?: undefined }
   | { status: 'until'; date: Date }
 
 const toDisputeEnd = (

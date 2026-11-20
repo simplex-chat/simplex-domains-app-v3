@@ -46,7 +46,6 @@ export const useExpiryDetails = ({ name, details }: Input, options: Options = {}
   const { buildTransactionUrl } = useBlockExplorer()
   const registrationData = useRegistrationData({ name, enabled: enabled && isETH2LD })
   const disputeEnd = useDisputeEnd({ name, enabled })
-  const disputeEndDate = disputeEnd.status === 'until' ? disputeEnd.date : undefined
 
   const isLoading =
     nameType.isLoading ||
@@ -93,11 +92,11 @@ export const useExpiryDetails = ({ name, details }: Input, options: Options = {}
                   },
                 ]
               : []),
-            ...(disputeEndDate
+            ...(disputeEnd.date
               ? [
                   {
                     type: 'dispute-period',
-                    date: disputeEndDate,
+                    date: disputeEnd.date,
                     tooltip: t('tabs.ownership.sections.expiry.panel.dispute-period.tooltip'),
                   },
                 ]
@@ -178,7 +177,7 @@ export const useExpiryDetails = ({ name, details }: Input, options: Options = {}
       parentData.wrapperData,
       parentData.expiryDate,
       registrationData.data,
-      disputeEndDate,
+      disputeEnd.date,
       buildTransactionUrl,
     ],
   )

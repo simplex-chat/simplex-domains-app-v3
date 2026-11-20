@@ -118,10 +118,10 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
     !!root?.customResolver ||
     !!root?.records.some(({ resolver }) => !(clearRecords && resolver === clearResolver))
   const acknowledged = !!reviewKey && (!staysAfterClaim || acknowledgedReview === reviewKey)
-  const disputeEndDate = disputeEnd.status === 'until' ? disputeEnd.date : undefined
-  const disputeKey = disputeEndDate && holder ? `${disputeEndDate.getTime()} ${holder}` : undefined
+  const disputeKey =
+    disputeEnd.date && holder ? `${disputeEnd.date.getTime()} ${holder}` : undefined
   const acknowledgedDispute =
-    !disputeEndDate || (!!disputeKey && acknowledgedDisputeKey === disputeKey)
+    !disputeEnd.date || (!!disputeKey && acknowledgedDisputeKey === disputeKey)
 
   const onConfirm = () => {
     if (!holder || !review) return
@@ -163,12 +163,12 @@ const ClaimName = ({ data: { name }, dispatch, onDismiss }: Props) => {
           </Helper>
         )}
         <Typography>{t('input.claimName.description', { name })}</Typography>
-        {disputeEndDate && (
+        {disputeEnd.date && (
           <>
             <Helper alert="warning">
               {t('input.claimName.disputePeriod', {
                 name,
-                date: formatFullExpiry(disputeEndDate),
+                date: formatFullExpiry(disputeEnd.date),
               })}
             </Helper>
             <CheckboxRow
