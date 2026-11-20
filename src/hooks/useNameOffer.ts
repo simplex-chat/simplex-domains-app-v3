@@ -1,18 +1,11 @@
 import { QueryFunctionContext, queryOptions } from '@tanstack/react-query'
-import {
-  Address,
-  BaseError,
-  ContractFunctionRevertedError,
-  ExecutionRevertedError,
-  namehash,
-  zeroAddress,
-} from 'viem'
+import { Address, namehash, zeroAddress } from 'viem'
 import { readContract } from 'viem/actions'
 
 import { getSnrcAddresses } from '@app/constants/chains'
 import { ConfigWithEns, CreateQueryKey } from '@app/types'
 import { useQuery } from '@app/utils/query/useQuery'
-import { getSnrcTokenId, registrarOfferAbi } from '@app/utils/snrcOffers'
+import { getSnrcTokenId, readOwnerOf, registrarOfferAbi } from '@app/utils/snrcOffers'
 
 import { useQueryOptions } from './useQueryOptions'
 
@@ -33,19 +26,7 @@ export const getNameOfferQueryFn =
     const target = { address: registrar, abi: registrarOfferAbi, args: [tokenId] } as const
 
     // `ownerOf` reverts for an unregistered or lapsed name, which has no holder.
-    const holder = await readContract(client, { ...target, functionName: 'ownerOf' }).catch(
-      (error) => {
-        if (
-          error instanceof BaseError &&
-          error.walk(
-            (e) =>
-              e instanceof ContractFunctionRevertedError || e instanceof ExecutionRevertedError,
-          )
-        )
-          return undefined
-        throw error
-      },
-    )
+    const holder = await readOwnerOf(client, registrar, tokenId)
     if (!holder) return null
     const [baseNode, approved, offerNumber] = await Promise.all([
       readContract(client, {

@@ -1,6 +1,15 @@
-import { labelhash, parseAbi } from 'viem'
+import {
+  Address,
+  BaseError,
+  ContractFunctionRevertedError,
+  ExecutionRevertedError,
+  labelhash,
+  parseAbi,
+} from 'viem'
+import { readContract } from 'viem/actions'
 
 import { ALLOWED_LABEL_REGEX } from '@app/hooks/useValidate'
+import type { ClientWithEns } from '@app/types'
 
 import { isEthLikeTld } from './utils'
 
@@ -17,6 +26,23 @@ export const registrarTokensAbi = parseAbi([
   'function balanceOf(address owner) view returns (uint256)',
   'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
 ])
+
+export const readOwnerOf = (client: ClientWithEns, registrar: Address, tokenId: bigint) =>
+  readContract(client, {
+    address: registrar,
+    abi: registrarOfferAbi,
+    functionName: 'ownerOf',
+    args: [tokenId],
+  }).catch((error) => {
+    if (
+      error instanceof BaseError &&
+      error.walk(
+        (e) => e instanceof ContractFunctionRevertedError || e instanceof ExecutionRevertedError,
+      )
+    )
+      return undefined
+    throw error
+  })
 
 export const getSnrcTokenId = (name: string) => {
   const labels = name.split('.')
