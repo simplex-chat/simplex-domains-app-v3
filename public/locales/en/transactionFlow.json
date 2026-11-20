@@ -284,7 +284,13 @@
       "reserved_other": "{{names}} are reserved and cannot be renewed.",
       "tooEarly": "A name can be paid up at most three years ahead. This one can be extended by a year from {{date}}.",
       "disputePeriod": "This name can't be extended before its dispute period ends on {{date}}.",
-      "disputeFailed": "The dispute period of this name could not be read, so it can't be extended now."
+      "disputeFailed": "The dispute period of this name could not be read, so it can't be extended now.",
+      "errors": {
+        "notHolder": "Only the wallet that holds this name can extend it.",
+        "termsMismatch": "The terms changed. Review them and try again.",
+        "expiryMismatch": "The name's expiry changed. Open Extend again.",
+        "termsNotAccepted": "Accept the terms to extend this name."
+      }
     },
     "transferProfile": {
       "title": "Transfer Profile",

@@ -83,6 +83,13 @@ const RENEWAL_REVERTS: RevertErrorName[] = [
   'TermsNotAccepted',
 ]
 
+const RENEWAL_REVERT_MESSAGES: Partial<Record<RevertErrorName, string>> = {
+  NotHolder: 'input.extendNames.errors.notHolder',
+  TermsMismatch: 'input.extendNames.errors.termsMismatch',
+  ExpiryMismatch: 'input.extendNames.errors.expiryMismatch',
+  TermsNotAccepted: 'input.extendNames.errors.termsNotAccepted',
+}
+
 const PlusMinusWrapper = styled.div(
   () => css`
     width: 100%;
@@ -356,12 +363,15 @@ const ExtendNames = ({
   const previousTransactionFee = usePreviousDistinct(transactionFee) || 0n
   const isBalanceShort =
     !!balance && balance.value < calculateValueWithBuffer(totalRentFee) + transactionFee
-  const estimateError =
-    estimateGasLimitError &&
-    (getReadableError(estimateGasLimitError)?.message ??
-      t('transaction.error.unknown', { ns: 'common' }))
   const estimateErrorName = getRevertErrorName(estimateGasLimitError)
   const isRenewalReverted = !!estimateErrorName && RENEWAL_REVERTS.includes(estimateErrorName)
+  const revertMessage = estimateErrorName && RENEWAL_REVERT_MESSAGES[estimateErrorName]
+  const estimateError =
+    estimateGasLimitError &&
+    (revertMessage
+      ? t(revertMessage)
+      : getReadableError(estimateGasLimitError)?.message ??
+        t('transaction.error.unknown', { ns: 'common' }))
 
   const isShowingPreviousTransactionFee = transactionFee === 0n && previousTransactionFee > 0n
 
