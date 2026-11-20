@@ -19,7 +19,7 @@ import { useBlockTimestamp } from '@app/hooks/chain/useBlockTimestamp'
 import { useEstimateGasWithStateOverride } from '@app/hooks/chain/useEstimateGasWithStateOverride'
 import { useExpiry } from '@app/hooks/ensjs/public/useExpiry'
 import { usePrice } from '@app/hooks/ensjs/public/usePrice'
-import { useDisputeEnd } from '@app/hooks/useDisputeEnd'
+import { useDisputeEnd, type DisputeEnd } from '@app/hooks/useDisputeEnd'
 import { useEnsAvatar } from '@app/hooks/useEnsAvatar'
 import { useEthPrice } from '@app/hooks/useEthPrice'
 import { useReferrer } from '@app/hooks/useReferrer'
@@ -44,6 +44,29 @@ import { SearchViewLoadingView } from '../SendName/views/SearchView/views/Search
 import { validateExtendNamesDuration } from './utils/validateExtendNamesDuration'
 
 type View = 'name-list' | 'no-ownership-warning' | 'registration'
+
+type ExtensionRestriction =
+  | { reason: 'reserved' }
+  | { reason: 'disputePeriod'; date: Date }
+  | { reason: 'tooEarly'; date: Date }
+  | { reason: 'disputeUnknown' }
+
+const getExtensionRestriction = ({
+  isReserved,
+  disputeEnd,
+  earliestExtension,
+}: {
+  isReserved: boolean
+  disputeEnd: DisputeEnd
+  earliestExtension?: Date
+}): ExtensionRestriction | undefined => {
+  if (isReserved) return { reason: 'reserved' }
+  if (disputeEnd.date && !(earliestExtension && earliestExtension > disputeEnd.date))
+    return { reason: 'disputePeriod', date: disputeEnd.date }
+  if (earliestExtension) return { reason: 'tooEarly', date: earliestExtension }
+  if (disputeEnd.status === 'unknown') return { reason: 'disputeUnknown' }
+  return undefined
+}
 
 const PlusMinusWrapper = styled.div(
   () => css`
@@ -245,8 +268,7 @@ const ExtendNames = ({
   const { reservedNames, isLoading: isReservedLoading } = useReservedNames({ names })
   const isReserved = reservedNames.length > 0
   const disputeEnd = useDisputeEnd({ name: names[0] })
-  const isDisputeEndLater =
-    !!disputeEnd.date && !(earliestExtension && earliestExtension > disputeEnd.date)
+  const restriction = getExtensionRestriction({ isReserved, disputeEnd, earliestExtension })
 
   const {
     data: { gasEstimate: estimatedGasLimit, gasCost: transactionFee },
@@ -278,9 +300,8 @@ const ExtendNames = ({
       !!address &&
       seconds > 0 &&
       totalRentFee > 0n &&
-      !isTooEarly &&
-      !isReserved &&
-      disputeEnd.status === 'none',
+      !restriction &&
+      disputeEnd.status !== 'loading',
   })
 
   const previousTransactionFee = usePreviousDistinct(transactionFee) || 0n
@@ -354,10 +375,9 @@ const ExtendNames = ({
       buttonProps: {
         disabled:
           isRegisterLoading ||
-          isTooEarly ||
-          isReserved ||
           isReservedLoading ||
-          disputeEnd.status !== 'none',
+          disputeEnd.status === 'loading' ||
+          !!restriction,
         onClick: () => {
           if (!priceData) return
           const transactions = createTransactionItem('extendNames', {
@@ -385,55 +405,39 @@ const ExtendNames = ({
     <>
       <Dialog.Heading title={title} alert={alert} />
       <Dialog.Content data-testid="extend-names-modal">
-        {match([view, isBaseDataLoading])
-          .with([P._, true], () => <SearchViewLoadingView />)
-          .with(['no-ownership-warning', false], () => (
+        {match([view, isBaseDataLoading, restriction])
+          .with([P._, true, P._], () => <SearchViewLoadingView />)
+          .with(['no-ownership-warning', false, P._], () => (
             <CenteredMessage>
               {t('input.extendNames.ownershipWarning.description', { count: names.length })}
             </CenteredMessage>
           ))
-          .with(['name-list', false], () => {
+          .with(['name-list', false, P._], () => {
             return <NamesList names={names} />
           })
-          .with(
-            ['registration', false],
-            () => isReserved,
-            () => (
-              <Helper alert="warning" data-testid="extend-names-reserved">
-                {t('input.extendNames.reserved', {
-                  names: reservedNames.join(', '),
-                  count: reservedNames.length,
-                })}
-              </Helper>
-            ),
-          )
-          .with(
-            ['registration', false],
-            () => isDisputeEndLater,
-            () => (
-              <Helper alert="info" data-testid="extend-names-dispute-period">
-                {t('input.extendNames.disputePeriod', { date: formatFullExpiry(disputeEnd.date) })}
-              </Helper>
-            ),
-          )
-          .with(
-            ['registration', false],
-            () => isTooEarly,
-            () => (
-              <Helper alert="info" data-testid="extend-names-too-early">
-                {t('input.extendNames.tooEarly', { date: formatExpiry(earliestExtension!) })}
-              </Helper>
-            ),
-          )
-          .with(
-            ['registration', false],
-            () => disputeEnd.status === 'unknown',
-            () => (
-              <Helper alert="error" data-testid="extend-names-dispute-failed">
-                {t('input.extendNames.disputeFailed')}
-              </Helper>
-            ),
-          )
+          .with(['registration', false, { reason: 'reserved' }], () => (
+            <Helper alert="warning" data-testid="extend-names-reserved">
+              {t('input.extendNames.reserved', {
+                names: reservedNames.join(', '),
+                count: reservedNames.length,
+              })}
+            </Helper>
+          ))
+          .with(['registration', false, { reason: 'disputePeriod' }], ([, , { date }]) => (
+            <Helper alert="info" data-testid="extend-names-dispute-period">
+              {t('input.extendNames.disputePeriod', { date: formatFullExpiry(date) })}
+            </Helper>
+          ))
+          .with(['registration', false, { reason: 'tooEarly' }], ([, , { date }]) => (
+            <Helper alert="info" data-testid="extend-names-too-early">
+              {t('input.extendNames.tooEarly', { date: formatExpiry(date) })}
+            </Helper>
+          ))
+          .with(['registration', false, { reason: 'disputeUnknown' }], () => (
+            <Helper alert="error" data-testid="extend-names-dispute-failed">
+              {t('input.extendNames.disputeFailed')}
+            </Helper>
+          ))
           .otherwise(() => (
             <>
               <PlusMinusWrapper>
