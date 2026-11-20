@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { getReadableError } from './errors'
 
 describe('getReadableError', () => {
-  it('names a renewal refused during the dispute period', () => {
+  it('names the error of a renewal that reverts during the dispute period', () => {
     const data = encodeErrorResult({
       abi: parseAbi(['error DisputePeriodNotOver(uint256 id)']),
       errorName: 'DisputePeriodNotOver',
