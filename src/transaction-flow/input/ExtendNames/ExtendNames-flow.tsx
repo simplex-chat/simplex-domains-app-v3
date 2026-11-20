@@ -19,6 +19,7 @@ import { useBlockTimestamp } from '@app/hooks/chain/useBlockTimestamp'
 import { useEstimateGasWithStateOverride } from '@app/hooks/chain/useEstimateGasWithStateOverride'
 import { useExpiry } from '@app/hooks/ensjs/public/useExpiry'
 import { usePrice } from '@app/hooks/ensjs/public/usePrice'
+import { useDisputeEnd } from '@app/hooks/useDisputeEnd'
 import { useEnsAvatar } from '@app/hooks/useEnsAvatar'
 import { useEthPrice } from '@app/hooks/useEthPrice'
 import { useReferrer } from '@app/hooks/useReferrer'
@@ -30,7 +31,12 @@ import { CURRENCY_FLUCTUATION_BUFFER_PERCENTAGE } from '@app/utils/constants'
 import { getReferrerHex } from '@app/utils/referrer'
 import { ONE_YEAR, secondsToYears, yearsToSeconds } from '@app/utils/time'
 import useUserConfig from '@app/utils/useUserConfig'
-import { deriveYearlyFee, formatDurationOfDates, formatExpiry } from '@app/utils/utils'
+import {
+  deriveYearlyFee,
+  formatDurationOfDates,
+  formatExpiry,
+  formatFullExpiry,
+} from '@app/utils/utils'
 
 import { ShortExpiry } from '../../../components/@atoms/ExpiryComponents/ExpiryComponents'
 import GasDisplay from '../../../components/@atoms/GasDisplay'
@@ -234,6 +240,7 @@ const ExtendNames = ({
   const isTooEarly = maxSeconds !== undefined && maxSeconds < minSeconds
   const { reservedNames, isLoading: isReservedLoading } = useReservedNames({ names })
   const isReserved = reservedNames.length > 0
+  const { data: disputeEnd, isLoading: isDisputeEndLoading } = useDisputeEnd({ name: names[0] })
 
   const {
     data: { gasEstimate: estimatedGasLimit, gasCost: transactionFee },
@@ -261,7 +268,13 @@ const ExtendNames = ({
       },
     ],
     enabled:
-      !!totalRentFee && !!address && seconds > 0 && totalRentFee > 0n && !isTooEarly && !isReserved,
+      !!totalRentFee &&
+      !!address &&
+      seconds > 0 &&
+      totalRentFee > 0n &&
+      !isTooEarly &&
+      !isReserved &&
+      !disputeEnd,
   })
 
   const previousTransactionFee = usePreviousDistinct(transactionFee) || 0n
@@ -305,7 +318,8 @@ const ExtendNames = ({
     isBalanceLoading ||
     isExpiryEnabledAndLoading ||
     isEthPriceLoading ||
-    isReservedLoading
+    isReservedLoading ||
+    isDisputeEndLoading
   const isRegisterLoading = isPriceLoading || (isEstimateGasLoading && !estimateGasLimitError)
 
   const { title, alert, buttonProps } = match(view)
@@ -332,7 +346,13 @@ const ExtendNames = ({
       title: t('input.extendNames.title', { name: names.at(0), count: names.length }),
       alert: undefined,
       buttonProps: {
-        disabled: isRegisterLoading || isTooEarly || isReserved || isReservedLoading,
+        disabled:
+          isRegisterLoading ||
+          isTooEarly ||
+          isReserved ||
+          isReservedLoading ||
+          !!disputeEnd ||
+          isDisputeEndLoading,
         onClick: () => {
           if (!priceData) return
           const transactions = createTransactionItem('extendNames', {
@@ -395,6 +415,15 @@ const ExtendNames = ({
                 </Helper>
               )
             },
+          )
+          .with(
+            ['registration', false],
+            () => !!disputeEnd,
+            () => (
+              <Helper alert="info" data-testid="extend-names-dispute-period">
+                {t('input.extendNames.disputePeriod', { date: formatFullExpiry(disputeEnd) })}
+              </Helper>
+            ),
           )
           .otherwise(() => (
             <>

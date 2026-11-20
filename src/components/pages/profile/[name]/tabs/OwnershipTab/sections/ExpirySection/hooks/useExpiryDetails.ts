@@ -5,6 +5,7 @@ import { match, P } from 'ts-pattern'
 import { useBlockExplorer } from '@app/hooks/chain/useBlockExplorer'
 import { useNameType } from '@app/hooks/nameType/useNameType'
 import { useBasicName } from '@app/hooks/useBasicName'
+import { useDisputeEnd } from '@app/hooks/useDisputeEnd'
 import type { useNameDetails } from '@app/hooks/useNameDetails'
 import useRegistrationData from '@app/hooks/useRegistrationData'
 import { GRACE_PERIOD } from '@app/utils/constants'
@@ -44,9 +45,14 @@ export const useExpiryDetails = ({ name, details }: Input, options: Options = {}
   })
   const { buildTransactionUrl } = useBlockExplorer()
   const registrationData = useRegistrationData({ name, enabled: enabled && isETH2LD })
+  const disputeEnd = useDisputeEnd({ name })
 
   const isLoading =
-    nameType.isLoading || details.isLoading || parentData.isLoading || registrationData.isLoading
+    nameType.isLoading ||
+    details.isLoading ||
+    parentData.isLoading ||
+    registrationData.isLoading ||
+    disputeEnd.isLoading
   const isCachedData =
     nameType.isCachedData || (isETH2LD && registrationData.isCachedData) || parentData.isCachedData
 
@@ -83,6 +89,15 @@ export const useExpiryDetails = ({ name, details }: Input, options: Options = {}
                     date: expiry ? new Date(expiry.getTime() + GRACE_PERIOD) : undefined,
                     tooltip: t('tabs.ownership.sections.expiry.panel.grace-period.tooltip'),
                     supportLink: getSupportLink('grace-period'),
+                  },
+                ]
+              : []),
+            ...(disputeEnd.data
+              ? [
+                  {
+                    type: 'dispute-period',
+                    date: disputeEnd.data,
+                    tooltip: t('tabs.ownership.sections.expiry.panel.dispute-period.tooltip'),
                   },
                 ]
               : []),
@@ -162,6 +177,7 @@ export const useExpiryDetails = ({ name, details }: Input, options: Options = {}
       parentData.wrapperData,
       parentData.expiryDate,
       registrationData.data,
+      disputeEnd.data,
       buildTransactionUrl,
     ],
   )

@@ -259,7 +259,10 @@
         "description": "After the claim, remove every record the name holds on its resolver. This costs additional gas."
       },
       "acknowledge": "I accept that the records and subnames listed above stay with the name after I claim it.",
-      "acceptIncomplete": "I accept the subnodes this app could not check."
+      "acceptIncomplete": "I accept the subnodes this app could not check.",
+      "disputePeriod": "Until {{date}}, the registration of {{name}} can be ended if a payment for it is disputed, reversed or refunded. If it is ended, you lose the name, and anyone can register it.",
+      "acknowledgeDispute": "I accept that I lose this name if its registration is ended before its dispute period ends.",
+      "disputeFailed": "The dispute period of this name could not be read, so it cannot be claimed now."
     },
     "extendNames": {
       "title_one": "Extend {{name}}",
@@ -279,7 +282,8 @@
       "gasLimitError": "Not enough ETH in wallet",
       "reserved_one": "{{names}} is reserved and cannot be renewed.",
       "reserved_other": "{{names}} are reserved and cannot be renewed.",
-      "tooEarly": "A name can be paid up at most three years ahead. This one can be extended by a year from {{date}}."
+      "tooEarly": "A name can be paid up at most three years ahead. This one can be extended by a year from {{date}}.",
+      "disputePeriod": "This name can't be extended before its dispute period ends on {{date}}."
     },
     "transferProfile": {
       "title": "Transfer Profile",

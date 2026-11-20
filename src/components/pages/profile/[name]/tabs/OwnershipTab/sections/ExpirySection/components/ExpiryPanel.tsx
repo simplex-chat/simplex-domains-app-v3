@@ -7,7 +7,13 @@ import { QuestionTooltip } from '@app/components/@molecules/QuestionTooltip/Ques
 import { safeDateObj } from '@app/utils/date'
 
 type Props = {
-  type: 'expiry' | 'grace-period' | 'registration' | 'parent-expiry' | 'parent-grace-period'
+  type:
+    | 'expiry'
+    | 'grace-period'
+    | 'dispute-period'
+    | 'registration'
+    | 'parent-expiry'
+    | 'parent-grace-period'
   date: Date
   link?: string
   tooltip?: string

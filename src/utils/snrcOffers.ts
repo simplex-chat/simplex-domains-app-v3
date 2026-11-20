@@ -9,6 +9,7 @@ export const registrarOfferAbi = parseAbi([
   'function ownerOf(uint256 tokenId) view returns (address)',
   'function getApproved(uint256 tokenId) view returns (address)',
   'function offers(uint256 tokenId) view returns (uint256)',
+  'function disputeUntil(uint256 tokenId) view returns (uint256)',
   'function approve(address to, uint256 tokenId)',
   'function transferFrom(address from, address to, uint256 tokenId)',
 ])
