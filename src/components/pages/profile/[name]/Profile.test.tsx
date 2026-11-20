@@ -2,6 +2,7 @@ import { mockFunction, render, screen } from '@app/test-utils'
 
 import { describe, expect, it, Mock, vi } from 'vitest'
 
+import { useRenew } from '@app/hooks/pages/profile/useRenew/useRenew'
 import { useBasicName } from '@app/hooks/useBasicName'
 import { useNameDetails } from '@app/hooks/useNameDetails'
 import { useProfile } from '@app/hooks/useProfile'
@@ -12,6 +13,7 @@ import ProfileContent, { NameAvailableBanner } from './Profile'
 vi.mock('@app/hooks/useBasicName')
 vi.mock('@app/hooks/useProfile')
 vi.mock('@app/hooks/useNameDetails')
+vi.mock('@app/hooks/pages/profile/useRenew/useRenew')
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }))
@@ -31,6 +33,7 @@ const baseBreakpoints: ReturnType<typeof useBreakpoint> = {
 const mockUseBasicName = mockFunction(useBasicName)
 const mockUseProfile = mockFunction(useProfile)
 const mockUseNameDetails = mockFunction(useNameDetails)
+const mockUseRenew = mockFunction(useRenew)
 
 describe('ProfileContent - Unsupported TLDs', () => {
   it('should display the expiry date of the name', () => {
@@ -75,5 +78,36 @@ describe('ProfileContent - Unsupported TLDs', () => {
     expect(screen.queryByTestId('subnames-tab')).not.toBeInTheDocument()
     expect(screen.queryByTestId('permissions-tab')).not.toBeInTheDocument()
     expect(screen.queryByTestId('more-tab')).not.toBeInTheDocument()
+  })
+})
+
+describe('ProfileContent - renewal link', () => {
+  it('should ask a wallet that does not hold the name for the wallet that does', () => {
+    window.ResizeObserver = vi.fn()
+    ;(window.ResizeObserver as Mock).mockImplementation(() => ({
+      observe: vi.fn(),
+      disconnect: vi.fn(),
+    }))
+    mockUseBreakpoint.mockReturnValue({ ...baseBreakpoints, lg: true, xl: true })
+    mockUseBasicName.mockReturnValue({
+      isValid: true,
+      name: 'test',
+      normalisedName: 'test',
+    })
+    mockUseProfile.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+    })
+    mockUseNameDetails.mockReturnValue({
+      name: 'test.testing',
+      is2LD: true,
+      isValid: true,
+      normalisedName: 'test.testing',
+    })
+    mockUseRenew.mockReturnValue('not-holder')
+
+    render(<ProfileContent isSelf={false} isLoading={false} name={'test.testing'} />)
+
+    expect(screen.getByText('banner.renew.notHolder')).toBeVisible()
   })
 })

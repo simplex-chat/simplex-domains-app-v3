@@ -422,4 +422,17 @@ describe('useAcceptedRenewalTerms', () => {
       expect.objectContaining({ placeholderData: keepPreviousData }),
     )
   })
+
+  it('reads no acceptance before the expiry of the name is read', () => {
+    mockUseQuery.mockReturnValue({} as never)
+    renderHook(() =>
+      useAcceptedRenewalTerms({
+        name: 'alice.testing',
+        expires: undefined,
+        duration: 31_536_000,
+        enabled: true,
+      }),
+    )
+    expect(mockUseQuery).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
+  })
 })

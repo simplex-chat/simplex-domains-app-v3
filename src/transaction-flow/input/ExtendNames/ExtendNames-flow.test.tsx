@@ -1,6 +1,13 @@
 import { mockFunction, render, screen, userEvent } from '@app/test-utils'
 
-import { encodeErrorResult, parseAbi, parseEther, RpcRequestError } from 'viem'
+import {
+  encodeErrorResult,
+  HttpRequestError,
+  InvalidInputRpcError,
+  parseAbi,
+  parseEther,
+  RpcRequestError,
+} from 'viem'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAccount, useBalance } from 'wagmi'
 
@@ -507,20 +514,26 @@ describe('Extendnames', () => {
       unmount()
     }
   })
-  const estimateFailure = (error: { code: number; message: string; data?: `0x${string}` }) =>
+  const estimateFailure = (error: Error) =>
     mockUseEstimateGasWithStateOverride.mockReturnValueOnce({
       data: { gasEstimate: 0n, gasCost: 0n },
       gasPrice: 100n,
-      error: new RpcRequestError({ body: {}, url: '', error } as never),
+      error,
       isLoading: false,
     })
   it('should name the error of a renewal that reverts, and offer no Next for it', () => {
     const abi = parseAbi(['error TermsMismatch(bytes32 accepted, bytes32 current)'])
-    estimateFailure({
-      code: 3,
-      message: 'execution reverted',
-      data: encodeErrorResult({ abi, errorName: 'TermsMismatch', args: [TERMS, TERMS] }),
-    })
+    estimateFailure(
+      new RpcRequestError({
+        body: {},
+        url: '',
+        error: {
+          code: 3,
+          message: 'execution reverted',
+          data: encodeErrorResult({ abi, errorName: 'TermsMismatch', args: [TERMS, TERMS] }),
+        },
+      } as never),
+    )
     render(
       <ExtendNames
         {...{
@@ -535,7 +548,15 @@ describe('Extendnames', () => {
     expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
   })
   it('should keep Next for an estimate that fails for another reason', () => {
-    estimateFailure({ code: -32000, message: 'header not found' })
+    estimateFailure(
+      new InvalidInputRpcError(
+        new RpcRequestError({
+          body: {},
+          url: '',
+          error: { code: -32000, message: 'header not found' },
+        }),
+      ),
+    )
     render(
       <ExtendNames
         {...{
@@ -546,6 +567,20 @@ describe('Extendnames', () => {
       />,
     )
     expect(screen.getByText('header not found')).toBeVisible()
+    expect(screen.getByTestId('extend-names-confirm')).not.toHaveAttribute('disabled')
+  })
+  it('should say that an estimate failed without an answer from the node', () => {
+    estimateFailure(new HttpRequestError({ url: 'http://localhost:8545' }))
+    render(
+      <ExtendNames
+        {...{
+          data: { names: ['nick.eth'], isSelf: true, hasWrapped: false },
+          dispatch: () => null,
+          onDismiss: () => null,
+        }}
+      />,
+    )
+    expect(screen.getByText('transaction.error.unknown')).toBeVisible()
     expect(screen.getByTestId('extend-names-confirm')).not.toHaveAttribute('disabled')
   })
   it('should wait for a stored acceptance before showing the terms', () => {

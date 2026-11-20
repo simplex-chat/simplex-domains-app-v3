@@ -1,4 +1,10 @@
-import { encodeErrorResult, parseAbi, RawContractError, RpcRequestError } from 'viem'
+import {
+  encodeErrorResult,
+  InvalidInputRpcError,
+  parseAbi,
+  RawContractError,
+  RpcRequestError,
+} from 'viem'
 import { describe, expect, it } from 'vitest'
 
 import { getReadableError } from './errors'
@@ -43,11 +49,13 @@ describe('getReadableError', () => {
   })
 
   it("gives the node's message for a failed request without revert data", () => {
-    const error = new RpcRequestError({
-      body: {},
-      url: '',
-      error: { code: -32000, message: 'header not found' },
-    })
+    const error = new InvalidInputRpcError(
+      new RpcRequestError({
+        body: {},
+        url: '',
+        error: { code: -32000, message: 'header not found' },
+      }),
+    )
     expect(getReadableError(error)).toEqual({ message: 'header not found', type: 'contract' })
   })
 })

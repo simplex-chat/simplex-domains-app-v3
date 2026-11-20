@@ -130,7 +130,7 @@ describe('calculateRenewState', () => {
     ).toBe('idle')
   })
 
-  it('should return idle if the wallet does not hold the name', () => {
+  it('should return not-holder if the connected wallet does not hold the name', () => {
     expect(
       calculateRenewState({
         registrationStatus: 'registered',
@@ -139,6 +139,23 @@ describe('calculateRenewState', () => {
         connectModalOpen: false,
         accountStatus: 'connected' as UseAccountReturnType['status'],
         isHolder: false,
+        isRouterReady: true,
+        name: 'name',
+        openedConnectModal: false,
+        openConnectModal: () => {},
+      }),
+    ).toBe('not-holder')
+  })
+
+  it('should return idle while the holding is read', () => {
+    expect(
+      calculateRenewState({
+        registrationStatus: 'registered',
+        isRegistrationStatusLoading: false,
+        renewSeconds: 123,
+        connectModalOpen: false,
+        accountStatus: 'connected' as UseAccountReturnType['status'],
+        isHolder: undefined,
         isRouterReady: true,
         name: 'name',
         openedConnectModal: false,
@@ -634,16 +651,17 @@ describe('useRenew', () => {
     expect(mockShowExtendNamesInput).not.toHaveBeenCalled()
   })
 
-  it('should do nothing for a wallet that does not hold the name', () => {
+  it('should tell a wallet that does not hold the name, without extending it', () => {
     mockRouter.push('/test.eth?renew=123')
     mockUseIsNameHolder.mockReturnValue({
       data: false,
       isLoading: false,
     })
 
-    renderHook(() => useRenew('test.eth'))
+    const { result } = renderHook(() => useRenew('test.eth'))
 
     expect(mockUseIsNameHolder).toHaveBeenCalledWith({ name: 'test.eth', enabled: true })
+    expect(result.current).toBe('not-holder')
     expect(mockShowExtendNamesInput).not.toHaveBeenCalled()
   })
 
@@ -654,8 +672,9 @@ describe('useRenew', () => {
       isLoading: true,
     })
 
-    renderHook(() => useRenew('test.eth'))
+    const { result } = renderHook(() => useRenew('test.eth'))
 
+    expect(result.current).toBe('idle')
     expect(mockShowExtendNamesInput).not.toHaveBeenCalled()
   })
 
