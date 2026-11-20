@@ -41,7 +41,7 @@ vi.mock('@app/hooks/useDisputeEnd', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockUseDisputeEnd.mockReturnValue({ data: undefined, isLoading: false })
+  mockUseDisputeEnd.mockReturnValue({ status: 'none', isFetching: false })
 })
 
 describe('useExpiryDetails', () => {
@@ -98,7 +98,7 @@ describe('useExpiryDetails', () => {
 
     it('should return the end of the dispute period while it lasts', () => {
       const disputeEnd = new Date(Date.now() + 60_000)
-      mockUseDisputeEnd.mockReturnValue({ data: disputeEnd, isLoading: false })
+      mockUseDisputeEnd.mockReturnValue({ status: 'until', date: disputeEnd, isFetching: false })
       expect(expiryDetails().data).toContainEqual(
         expect.objectContaining({ type: 'dispute-period', date: disputeEnd }),
       )
@@ -109,7 +109,7 @@ describe('useExpiryDetails', () => {
     })
 
     it('should wait for the dispute period', () => {
-      mockUseDisputeEnd.mockReturnValue({ data: undefined, isLoading: true })
+      mockUseDisputeEnd.mockReturnValue({ status: 'loading', isFetching: true })
       expect(expiryDetails()).toMatchObject({ data: undefined, isLoading: true })
     })
 

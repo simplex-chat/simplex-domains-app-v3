@@ -36,10 +36,14 @@ const getDisputeEnd = (name: string) =>
     queryKey: [{ name }, 1337, undefined, undefined, 'getDisputeEnd'],
   } as never)
 
-const disputeEnd = (data: Date | null, blockTime = Date.now()) => {
-  mockUseQuery.mockReturnValue({ data, isLoading: false } as never)
-  mockUseBlockTimestamp.mockReturnValue({ data: BigInt(blockTime), isLoading: false } as never)
-  return renderHook(() => useDisputeEnd({ name: 'alice.testing' })).result.current.data
+const disputeEnd = (
+  query: { data?: Date | null; isLoading?: boolean; isError?: boolean },
+  block: { data?: bigint; isLoading?: boolean } = { data: BigInt(Date.now()) },
+  name = 'alice.testing',
+) => {
+  mockUseQuery.mockReturnValue({ isLoading: false, isError: false, ...query } as never)
+  mockUseBlockTimestamp.mockReturnValue({ isLoading: false, ...block } as never)
+  return renderHook(() => useDisputeEnd({ name })).result.current
 }
 
 beforeEach(() => {
@@ -73,31 +77,49 @@ describe('getDisputeEndQueryFn', () => {
 })
 
 describe('useDisputeEnd', () => {
-  it('gives the dispute end while it is in the future', () => {
-    const future = new Date(Date.now() + 60_000)
-    expect(disputeEnd(future)).toBe(future)
-  })
-
-  it('gives no dispute end once it has passed, or without one', () => {
-    expect(disputeEnd(new Date(Date.now() - 60_000))).toBeUndefined()
-    expect(disputeEnd(null)).toBeUndefined()
+  it('gives the dispute end while the latest block is before it', () => {
+    const end = new Date(Date.now() + 60_000)
+    expect(disputeEnd({ data: end })).toMatchObject({ status: 'until', date: end })
   })
 
   it('compares the dispute end with the latest block, not with the clock of the device', () => {
     const end = new Date(Date.now() - 60_000)
-    expect(disputeEnd(end, end.getTime() - 1000)).toBe(end)
+    expect(disputeEnd({ data: end }, { data: BigInt(end.getTime() - 1000) })).toMatchObject({
+      status: 'until',
+      date: end,
+    })
   })
 
-  it('gives no dispute end from the block at its end, where a renewal succeeds', () => {
+  it('gives no dispute period from the block at its end, where a renewal succeeds', () => {
     const end = new Date(Date.now() + 60_000)
-    expect(disputeEnd(end, end.getTime())).toBeUndefined()
+    expect(disputeEnd({ data: end }, { data: BigInt(end.getTime()) })).toMatchObject({
+      status: 'none',
+    })
   })
 
-  it('waits for the latest block', () => {
-    mockUseQuery.mockReturnValue({ data: null, isLoading: false } as never)
-    mockUseBlockTimestamp.mockReturnValue({ data: undefined, isLoading: true } as never)
-    const { result } = renderHook(() => useDisputeEnd({ name: 'alice.testing' }))
-    expect(result.current.isLoading).toBe(true)
+  it('gives no dispute period for a stored 0 without reading the latest block', () => {
+    expect(disputeEnd({ data: null }, { isLoading: true })).toMatchObject({ status: 'none' })
+    expect(mockUseBlockTimestamp).toHaveBeenLastCalledWith({ enabled: false })
+  })
+
+  it('is loading while the dispute end, or the latest block for it, loads', () => {
+    expect(disputeEnd({ isLoading: true })).toMatchObject({ status: 'loading' })
+    expect(disputeEnd({ data: new Date() }, { isLoading: true })).toMatchObject({
+      status: 'loading',
+    })
+  })
+
+  it('is unknown when the dispute end, or the latest block for it, cannot be read', () => {
+    expect(disputeEnd({ isError: true })).toMatchObject({ status: 'unknown' })
+    expect(disputeEnd({ data: new Date() }, { data: undefined })).toMatchObject({
+      status: 'unknown',
+    })
+  })
+
+  it('reads nothing for a name that cannot have a dispute period', () => {
+    expect(disputeEnd({}, {}, 'mobile.alice.testing')).toMatchObject({ status: 'none' })
+    expect(mockUseQuery).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))
+    expect(mockUseBlockTimestamp).toHaveBeenLastCalledWith({ enabled: false })
   })
 
   it('reads neither the dispute end nor the latest block while disabled', () => {
