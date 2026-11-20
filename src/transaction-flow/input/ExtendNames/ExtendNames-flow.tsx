@@ -300,7 +300,10 @@ const ExtendNames = ({
           terms: { kind: terms.kind, hash: terms.hash },
         }
       : undefined
-  const acceptedRenewal = acceptance.acceptedTerms && renewal
+  const acceptanceItem =
+    needsTermsAcceptance && renewal
+      ? createTransactionItem('acceptRenewalTerms', renewal)
+      : undefined
   const namePolicyAddress = getNamePolicyAddress(chainId)
 
   const {
@@ -310,9 +313,7 @@ const ExtendNames = ({
     gasPrice,
   } = useEstimateGasWithStateOverride({
     transactions: [
-      ...(needsTermsAcceptance && renewal
-        ? [{ name: 'acceptRenewalTerms', data: renewal } as const]
-        : []),
+      ...(acceptanceItem ? [acceptanceItem] : []),
       {
         name: 'extendNames',
         data: {
@@ -422,7 +423,7 @@ const ExtendNames = ({
           isReservedLoading ||
           disputeEnd.status === 'loading' ||
           !!restriction ||
-          (needsTermsAcceptance && !acceptedRenewal) ||
+          (needsTermsAcceptance && !(acceptance.acceptedTerms && acceptanceItem)) ||
           terms.isFetching ||
           renewalTerms.isFetching ||
           isExpiryFetching ||
@@ -444,12 +445,7 @@ const ExtendNames = ({
           })
           dispatch({
             name: 'setTransactions',
-            payload: [
-              ...(needsTermsAcceptance && acceptedRenewal
-                ? [createTransactionItem('acceptRenewalTerms', acceptedRenewal)]
-                : []),
-              transactions,
-            ],
+            payload: [...(acceptanceItem ? [acceptanceItem] : []), transactions],
           })
           dispatch({ name: 'setFlowStage', payload: 'transaction' })
         },
