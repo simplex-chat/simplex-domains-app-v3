@@ -5,7 +5,7 @@ import { readContract } from 'viem/actions'
 import { getSnrcAddresses } from '@app/constants/chains'
 import { ConfigWithEns, CreateQueryKey } from '@app/types'
 import { useQuery } from '@app/utils/query/useQuery'
-import { getSnrcTokenId, registrarOfferAbi } from '@app/utils/snrcOffers'
+import { getSnrcTokenId, registrarTokensAbi } from '@app/utils/snrcOffers'
 
 import { useQueryOptions } from './useQueryOptions'
 
@@ -19,7 +19,7 @@ export const getIsNameHolderQueryFn =
     if (tokenId === undefined || !registrar || registrar === zeroAddress || !address) return false
 
     const client = config.getClient({ chainId })
-    const target = { address: registrar, abi: registrarOfferAbi } as const
+    const target = { address: registrar, abi: registrarTokensAbi } as const
     const balance = await readContract(client, {
       ...target,
       functionName: 'balanceOf',
