@@ -1,5 +1,3 @@
-import { mockFunction } from '@app/test-utils'
-
 import { Address, labelhash } from 'viem'
 import { readContract } from 'viem/actions'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -14,15 +12,14 @@ vi.mock('@app/constants/chains', async (importOriginal) => ({
   getSnrcAddresses: () => ({ BaseRegistrarImplementation: REGISTRAR }),
 }))
 
-const mockReadContract = mockFunction(readContract)
-
 const REGISTRAR = '0x1111111111111111111111111111111111111111'
 const HOLDER = '0x2222222222222222222222222222222222222222'
 
-const mockConfig = { getClient: () => ({}) } as unknown as ConfigWithEns
+const mockReadContract = vi.mocked(readContract)
+const config = { getClient: () => ({}) } as unknown as ConfigWithEns
 
 const isNameHolder = (name: string, address?: Address) =>
-  getIsNameHolderQueryFn(mockConfig)({
+  getIsNameHolderQueryFn(config)({
     queryKey: [{ name }, 1337, address, undefined, 'getIsNameHolder'],
   } as never)
 
@@ -40,7 +37,7 @@ describe('getIsNameHolderQueryFn', () => {
     vi.clearAllMocks()
   })
 
-  it("finds the name among the address's tokens, without ownerOf, which reverts after expiry", async () => {
+  it("finds the name among the address's tokens, as the name policy does in the grace period", async () => {
     holding('bob', 'alice')
     expect(await isNameHolder('alice.testing', HOLDER)).toBe(true)
     const read = (functionName: string, args: unknown[]) =>

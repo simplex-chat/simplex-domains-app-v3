@@ -119,7 +119,7 @@ describe('calculateTransactions', () => {
 })
 
 describe('acceptedRenewalTermsOverride', () => {
-  it("simulates the holder's renewal acceptance at acceptedRenewalTerms, slot 109", () => {
+  it("simulates the holder's renewal acceptance at acceptedRenewalTerms, slot 8", () => {
     const terms = { kind: 'general', hash: `0x${'77'.repeat(32)}` } as const
     const namePolicyAddress = '0x0000000000000000000000000000000000004444'
     const holder = baseParams!.owner
@@ -132,7 +132,7 @@ describe('acceptedRenewalTermsOverride', () => {
     const tokenSlot = keccak256(
       encodeAbiParameters(
         [{ type: 'uint256' }, { type: 'uint256' }],
-        [BigInt(labelhash('somename')), 109n],
+        [BigInt(labelhash('somename')), 8n],
       ),
     )
     const holderSlot = keccak256(

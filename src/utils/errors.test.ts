@@ -15,4 +15,16 @@ describe('getReadableError', () => {
       type: 'contract',
     })
   })
+
+  it.each([
+    ['NotHolder', ['alice']],
+    ['ExpiryMismatch', [1n, 2n]],
+  ] as const)('names the renewal refusal %s', (errorName, args) => {
+    const abi = parseAbi([
+      'error NotHolder(string name)',
+      'error ExpiryMismatch(uint256 named, uint256 current)',
+    ])
+    const data = encodeErrorResult({ abi, errorName, args } as never)
+    expect(getReadableError(new RawContractError({ data }))?.message).toBe(errorName)
+  })
 })
