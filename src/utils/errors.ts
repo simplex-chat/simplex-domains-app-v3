@@ -131,7 +131,7 @@ const getRpcErrorMessage = (err: RpcError | RpcRequestError) => {
   } satisfies ReadableError
 }
 
-export type RevertErrorName = ContractErrorName<typeof allContractErrors>
+export type RevertErrorName = ContractErrorName<typeof allContractErrors> | 'Error' | 'Panic'
 
 export const getRevertErrorName = (err: unknown): RevertErrorName | undefined => {
   const data = getViemRevertErrorData(err)

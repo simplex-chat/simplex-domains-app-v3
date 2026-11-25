@@ -75,14 +75,6 @@ const getExtensionRestriction = ({
   return undefined
 }
 
-const RENEWAL_REVERTS: RevertErrorName[] = [
-  'NotHolder',
-  'TermsMismatch',
-  'ExpiryMismatch',
-  'DisputePeriodNotOver',
-  'TermsNotAccepted',
-]
-
 const RENEWAL_REVERT_MESSAGES: Partial<Record<RevertErrorName, string>> = {
   NotHolder: 'input.extendNames.errors.notHolder',
   TermsMismatch: 'input.extendNames.errors.termsMismatch',
@@ -365,7 +357,7 @@ const ExtendNames = ({
   const isBalanceShort =
     !!balance && balance.value < calculateValueWithBuffer(totalRentFee) + transactionFee
   const estimateErrorName = getRevertErrorName(estimateGasLimitError)
-  const isRenewalReverted = !!estimateErrorName && RENEWAL_REVERTS.includes(estimateErrorName)
+  const isRenewalReverted = !!estimateErrorName
   const revertMessage = estimateErrorName && RENEWAL_REVERT_MESSAGES[estimateErrorName]
   const estimateError =
     estimateGasLimitError &&
