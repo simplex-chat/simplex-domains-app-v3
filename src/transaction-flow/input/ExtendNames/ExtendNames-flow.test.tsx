@@ -563,6 +563,40 @@ describe('Extendnames', () => {
       expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
     },
   )
+  it.each([
+    ['DurationTooLong', parseAbi(['error DurationTooLong(uint256 duration)']), [1n]],
+    [
+      'Error',
+      [{ type: 'error', name: 'Error', inputs: [{ name: 'message', type: 'string' }] }],
+      ['reason'],
+    ],
+  ] as const)(
+    'should name any other decoded revert of the renewal, %s, and offer no Next for it',
+    (errorName, abi, args) => {
+      estimateFailure(
+        new RpcRequestError({
+          body: {},
+          url: '',
+          error: {
+            code: 3,
+            message: 'execution reverted',
+            data: encodeErrorResult({ abi, errorName, args } as never),
+          },
+        } as never),
+      )
+      render(
+        <ExtendNames
+          {...{
+            data: { names: ['nick.eth'], isSelf: true, hasWrapped: false },
+            dispatch: () => null,
+            onDismiss: () => null,
+          }}
+        />,
+      )
+      expect(screen.getByText(errorName)).toBeVisible()
+      expect(screen.getByTestId('extend-names-confirm')).toHaveAttribute('disabled')
+    },
+  )
   it('should keep Next for an estimate that fails for another reason', () => {
     estimateFailure(
       new InvalidInputRpcError(
