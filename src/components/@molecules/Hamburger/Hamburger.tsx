@@ -1,3 +1,4 @@
+import { useRouter } from 'next/router'
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import styled, { css, keyframes } from 'styled-components'
 import { match } from 'ts-pattern'
@@ -143,6 +144,7 @@ const SlideContainer = styled.div<{ $direction: 'backwards' | 'forwards' }>(
 export type HamburgerView = 'main' | 'language' | 'theme'
 
 const Hamburger = () => {
+  const router = useRouter()
   const breakpoints = useBreakpoint()
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -207,6 +209,12 @@ const Hamburger = () => {
       window.removeEventListener('click', handleClick)
     }
   }, [isOpen])
+
+  useEffect(() => {
+    const close = () => setIsOpen(false)
+    router.events.on('routeChangeStart', close)
+    return () => router.events.off('routeChangeStart', close)
+  }, [router.events])
 
   // set the height of the menu based on the finished animation view
   useEffect(() => {

@@ -27,7 +27,8 @@ import { SocialIcon } from '@app/components/SocialIcon'
 import { useChainName } from '@app/hooks/chain/useChainName'
 import { useGasPrice } from '@app/hooks/chain/useGasPrice'
 import { useReadLocalStorage } from '@app/hooks/useLocalStorage'
-import { routes } from '@app/routes'
+import { useRouterWithHistory } from '@app/hooks/useRouterWithHistory'
+import { getRoute, routes } from '@app/routes'
 import { SIMPLEX_LINKS } from '@app/utils/constants'
 import { makeDisplay } from '@app/utils/currency'
 import { useGraphOutOfSync } from '@app/utils/SyncProvider/SyncProvider'
@@ -219,8 +220,9 @@ const NetworkSectionRow = styled.div(
   `,
 )
 
-const NetworkSection = () => {
+export const NetworkSection = () => {
   const { t } = useTranslation('common')
+  const router = useRouterWithHistory()
   const graphOutOfSync = useGraphOutOfSync()
   const chainName = useChainName()
   const { data: gasPrice } = useGasPrice()
@@ -231,6 +233,9 @@ const NetworkSection = () => {
         {graphOutOfSync && <Spinner color="accent" />}
         <Typography id="chain-name" weight="bold" color="text">
           {chainName}
+        </Typography>
+        <Typography weight="bold" color="text" onClick={() => router.push(getRoute('admin').href)}>
+          {`.${process.env.NEXT_PUBLIC_SIMPLEX_TLD || 'testing'} TLD`}
         </Typography>
         {!!gasPrice && (
           <Typography color="grey">
