@@ -61,6 +61,7 @@ describe('<AvatarUpload />', () => {
   it('calls handleSubmit with correct data if upload is successful', async () => {
     global.fetch = vi.fn().mockImplementation(() =>
       Promise.resolve({
+        ok: true,
         json: () => ({ message: 'uploaded' }),
       }),
     )
@@ -74,6 +75,7 @@ describe('<AvatarUpload />', () => {
     await waitFor(() =>
       expect(global.fetch).toBeCalledWith('https://euc.li/test.eth', {
         method: 'PUT',
+        signal: expect.any(AbortSignal),
         headers: {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           'Content-Type': 'application/json',
@@ -99,6 +101,7 @@ describe('<AvatarUpload />', () => {
     mockUseChainName.mockImplementation(() => 'sepolia')
     global.fetch = vi.fn().mockImplementation(() =>
       Promise.resolve({
+        ok: true,
         json: () => ({ message: 'uploaded' }),
       }),
     )
@@ -112,6 +115,7 @@ describe('<AvatarUpload />', () => {
     await waitFor(() =>
       expect(global.fetch).toBeCalledWith('https://euc.li/sepolia/test.eth', {
         method: 'PUT',
+        signal: expect.any(AbortSignal),
         headers: {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           'Content-Type': 'application/json',
@@ -124,12 +128,21 @@ describe('<AvatarUpload />', () => {
         }),
       }),
     )
+
+    await waitFor(() =>
+      expect(mockHandleSubmit).toHaveBeenCalledWith(
+        'upload',
+        'https://euc.li/sepolia/test.eth',
+        mockFileDataURL,
+      ),
+    )
   })
   it('does not call handleSubmit if upload is unsuccessful', async () => {
     mockHandleSubmit.mockClear()
     global.fetch = vi.fn().mockImplementation(() =>
       Promise.resolve({
-        json: () => ({ error: 'failed', status: 500 }),
+        ok: false,
+        status: 500,
       }),
     )
 
@@ -137,14 +150,16 @@ describe('<AvatarUpload />', () => {
     fireEvent.click(screen.getByTestId('continue-button'))
     fireEvent.click(screen.getByTestId('upload-button'))
 
-    await waitFor(() => expect(global.fetch).toBeCalled())
-    await waitFor(() => expect(mockHandleSubmit).not.toHaveBeenCalled())
+    await screen.findByTestId('avatar-upload-error')
+    expect(global.fetch).toBeCalled()
+    expect(mockHandleSubmit).not.toHaveBeenCalled()
   })
   it('shows error when upload fails', async () => {
     mockHandleSubmit.mockClear()
     global.fetch = vi.fn().mockImplementation(() =>
       Promise.resolve({
-        json: () => ({ error: 'failed', status: 500 }),
+        ok: false,
+        status: 500,
       }),
     )
 
@@ -152,10 +167,9 @@ describe('<AvatarUpload />', () => {
     fireEvent.click(screen.getByTestId('continue-button'))
     fireEvent.click(screen.getByTestId('upload-button'))
 
-    await waitFor(() => expect(global.fetch).toBeCalled())
-    await waitFor(() => expect(mockHandleSubmit).not.toHaveBeenCalled())
-
-    expect(screen.getByTestId('avatar-upload-error')).toBeVisible()
-    expect(screen.getByTestId('avatar-upload-error')).toHaveTextContent('failed')
+    const error = await screen.findByTestId('avatar-upload-error')
+    expect(error).toBeVisible()
+    expect(error).toHaveTextContent('Upload failed with status 500')
+    expect(mockHandleSubmit).not.toHaveBeenCalled()
   })
 })
