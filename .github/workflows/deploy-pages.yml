@@ -76,57 +76,7 @@ jobs:
         run: |
           echo app.simplex.domains > CNAME
           touch .nojekyll
-          cat > 404.html <<'HTML'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-          <meta charset="utf-8">
-          <title>Redirecting…</title>
-          <meta name="robots" content="noindex">
-          <style>body{font:14px/1.4 system-ui,sans-serif;color:#666;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}</style>
-          <script>
-          (function () {
-            var p = location.pathname.replace(/\/+$/, '');
-            var enc = encodeURIComponent;
-            var go = function (path, qs) { location.replace(path + (qs ? '?' + qs : '')); };
-
-            // /:label.testing or /:label.simplex (optionally /register | /import | /expired-profile)
-            var m = p.match(/^\/(.+?\.(?:testing|simplex))(?:\/(register|expired-profile|import))?$/);
-            if (m) {
-              var q = 'name=' + enc(m[1]);
-              if (m[2] === 'register')        return go('/register', q);
-              if (m[2] === 'expired-profile') return go('/profile', q + '&expired=true');
-              if (m[2] === 'import')          return go('/import', q);
-              return go('/profile', q);
-            }
-
-            // /tld/:tld[/<sub>]
-            m = p.match(/^\/tld\/([^/]+)(?:\/(register|expired-profile|import))?$/);
-            if (m) {
-              var qq = 'name=' + enc(m[1]);
-              if (m[2] === 'register')        return go('/register', qq);
-              if (m[2] === 'expired-profile') return go('/profile', qq + '&expired=true');
-              if (m[2] === 'import')          return go('/import', qq);
-              return go('/profile', qq);
-            }
-
-            // /names/:address
-            m = p.match(/^\/names\/(.+)$/);
-            if (m) return go('/my/names', 'address=' + enc(m[1]));
-
-            if (p === '/my/profile')           return go('/profile', 'connected=true');
-            if (p === '/legacyFavourites')     return go('/legacyfavourites', '');
-            if (p === '/legal/privacy-policy') return location.replace('https://ens.domains/legal/privacy-policy');
-            if (p === '/legal/terms-of-use')   return location.replace('https://ens.domains/legal/terms-of-use');
-
-            // Unrecognised path — fall back to homepage rather than dead-ending.
-            location.replace('/');
-          })();
-          </script>
-          </head>
-          <body>Redirecting…</body>
-          </html>
-          HTML
+          cp ../.github/pages/404.html .
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
