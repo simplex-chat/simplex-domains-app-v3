@@ -27,13 +27,17 @@ type Props = {
   abilities: ReturnType<typeof useAbilities>['data']
 }
 
+const SHOW_PRIMARY_NAME = false
+
 const MoreTab = ({ name, nameDetails, abilities }: Props) => {
   const { isWrapped, isCachedData, profile } = nameDetails
 
   return (
     <MoreContainer>
       <Token isWrapped={isWrapped} name={name} />
-      {['mainnet', 'sepolia'].includes(getNetworkFromUrl() || '') && <PrimaryName name={name} />}
+      {SHOW_PRIMARY_NAME && ['mainnet', 'sepolia'].includes(getNetworkFromUrl() || '') && (
+        <PrimaryName name={name} />
+      )}
       <Resolver
         name={name}
         canEdit={abilities.canEdit}
