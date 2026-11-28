@@ -267,7 +267,7 @@
       "approveNameWrapper": "Approve the NameWrapper to manage your names",
       "approveSubnameRegistrar": "Approve the subname registrar to create subnames under your name",
       "offerName": "The name stays yours until the recipient claims it",
-      "withdrawOfferRelayed": "Your wallet asks {{holder}} to sign this withdrawal, then sends it from the selected account, which pays its network fee.",
+      "withdrawOfferRelayed": "{{holder}} signed this withdrawal. Your wallet sends it from the selected account, which pays its network fee.",
       "repairDesyncedName": "Sync the wrapped name expiry",
       "fuses": {
         "revoke": "Revoke",

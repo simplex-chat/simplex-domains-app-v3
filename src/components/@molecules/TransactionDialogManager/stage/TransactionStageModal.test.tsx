@@ -2,17 +2,20 @@
 import { act, fireEvent, mockFunction, render, screen, userEvent, waitFor } from '@app/test-utils'
 
 import type { MockedFunctionDeep } from '@vitest/spy'
+import { createInstance } from 'i18next'
 import { ComponentProps } from 'react'
 import { Account, TransactionRequest } from 'viem'
 import { estimateGas, prepareTransactionRequest } from 'viem/actions'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useClient, useConnections, useConnectorClient, useSendTransaction } from 'wagmi'
 
+import common from '@app/../public/locales/en/common.json'
 import { useAccountSafely } from '@app/hooks/account/useAccountSafely'
 import { useChainName } from '@app/hooks/chain/useChainName'
 import { useAddRecentTransaction } from '@app/hooks/transactions/useAddRecentTransaction'
 import { useRecentTransactions } from '@app/hooks/transactions/useRecentTransactions'
 import { useIsSafeApp } from '@app/hooks/useIsSafeApp'
+import withdrawOffer from '@app/transaction-flow/transaction/withdrawOffer'
 import { GenericTransaction } from '@app/transaction-flow/types'
 import { createAccessList } from '@app/utils/query/createAccessList'
 import { checkIsSafeApp } from '@app/utils/safe'
@@ -110,6 +113,7 @@ const ComponentWithDefaultProps = ({
   stepCount = 1,
   actionName = 'test',
   displayItems = [],
+  helper,
   transaction = {} as any,
 }: Partial<ComponentProps<typeof TransactionStageModal>>) => (
   <TransactionStageModal
@@ -117,6 +121,7 @@ const ComponentWithDefaultProps = ({
     stepCount={stepCount}
     actionName={actionName}
     displayItems={displayItems}
+    helper={helper}
     transaction={transaction}
     transactions={[transaction] as const}
     onDismiss={mockOnDismiss}
@@ -189,6 +194,23 @@ describe('TransactionStageModal', () => {
     })
     expect(screen.getByText('transaction.itemLabel.GenericItem')).toBeVisible()
     expect(screen.getByText('GenericValue')).toBeVisible()
+  })
+  it('should render the note of a relayed withdrawal, which its holder signed', async () => {
+    const holder = '0x2222222222222222222222222222222222222222'
+    const intent = { signer: holder, nonce: 1n, deadline: 1_900_000_000n, signature: '0x' } as const
+    const t = await createInstance().init({
+      lng: 'en',
+      defaultNS: 'common',
+      resources: { en: { common } },
+    })
+    await renderHelper({
+      helper: withdrawOffer.helper({ name: 'alice.simplex', intent }, t as never),
+    })
+    expect(
+      screen.getByText(
+        `${holder} signed this withdrawal. Your wallet sends it from the selected account, which pays its network fee.`,
+      ),
+    ).toBeVisible()
   })
 
   it('should not render steps if there is only 1 step', async () => {
