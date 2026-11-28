@@ -26,6 +26,8 @@ const DetailsContainer = styled.div(
   `,
 )
 
+const SHOW_NO_PROFILE_SNIPPET = false
+
 const Page = () => {
   const { t } = useTranslation('address')
   const router = useRouter()
@@ -82,7 +84,7 @@ const Page = () => {
                   getTextRecord={getTextRecord}
                 />
               ) : (
-                <NoProfileSnippet />
+                SHOW_NO_PROFILE_SNIPPET && <NoProfileSnippet />
               )}
             </DetailsContainer>
           ),

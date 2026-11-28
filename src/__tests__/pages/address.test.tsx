@@ -138,7 +138,7 @@ describe('Address Page', () => {
     })
   })
 
-  it('should show NoProfileSnippet when no primary name exists', async () => {
+  it('should show the names but not NoProfileSnippet when no primary name exists', async () => {
     // Mock a different address with no primary name
     vi.mocked(useRouter).mockReturnValueOnce({
       isReady: true,
@@ -148,15 +148,19 @@ describe('Address Page', () => {
     render(<Page />, { wrapper })
 
     await waitFor(() => {
-      expect(screen.getByTestId('no-profile-snippet')).toBeInTheDocument()
+      expect(screen.getByTestId('name-list-view')).toBeInTheDocument()
     })
+    expect(screen.queryByTestId('profile-snippet')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('no-profile-snippet')).not.toBeInTheDocument()
   })
 
-  it('should show NoProfileSnippet when unnormalized names are filtered out', async () => {
+  it('should show the names but not NoProfileSnippet when unnormalized names are filtered out', async () => {
     render(<Page />, { wrapper })
 
     await waitFor(() => {
-      expect(screen.getByTestId('no-profile-snippet')).toBeInTheDocument()
+      expect(screen.getByTestId('name-list-view')).toBeInTheDocument()
     })
+    expect(screen.queryByTestId('profile-snippet')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('no-profile-snippet')).not.toBeInTheDocument()
   })
 })
