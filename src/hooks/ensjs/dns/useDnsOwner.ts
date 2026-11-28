@@ -47,7 +47,7 @@ export const getDnsOwnerQueryFn = async <TParams extends UseDnsOwnerParameters>(
 
 export const useDnsOwner = <TParams extends UseDnsOwnerParameters>({
   // config
-  enabled = true,
+  enabled,
   gcTime,
   staleTime,
   scopeKey,
@@ -65,14 +65,7 @@ export const useDnsOwner = <TParams extends UseDnsOwnerParameters>({
   const preparedOptions = prepareQueryOptions({
     queryKey: initialOptions.queryKey,
     queryFn: initialOptions.queryFn,
-    enabled:
-      enabled &&
-      !!params.name &&
-      !params.name?.endsWith('.eth') &&
-      !params.name?.endsWith('.testing') &&
-      !params.name?.endsWith('.simplex') &&
-      params.name !== 'eth' &&
-      params.name !== '[root]',
+    enabled: false,
     gcTime,
     retry: 2,
     staleTime,

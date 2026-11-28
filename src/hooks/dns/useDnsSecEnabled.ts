@@ -70,7 +70,7 @@ export const getDnsSecEnabledQueryFn = async <TParams extends UseDnsSecEnabledPa
 
 export const useDnsSecEnabled = <TParams extends UseDnsSecEnabledParameters>({
   // config
-  enabled = true,
+  enabled,
   gcTime,
   staleTime,
   scopeKey,
@@ -88,7 +88,7 @@ export const useDnsSecEnabled = <TParams extends UseDnsSecEnabledParameters>({
   const preparedOptions = prepareQueryOptions({
     queryKey: initialOptions.queryKey,
     queryFn: initialOptions.queryFn,
-    enabled: enabled && !!params.name && params.name !== 'eth' && params.name !== '[root]',
+    enabled: false,
     gcTime,
     retry: 2,
     staleTime,

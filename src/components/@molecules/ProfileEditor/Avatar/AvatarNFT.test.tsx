@@ -172,7 +172,7 @@ describe('<AvatarNFT />', () => {
 
     render(<AvatarNFT {...props} />)
 
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
     await waitFor(() =>
       expect(
         screen.queryByTestId('nft-0-0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85'),
@@ -241,7 +241,7 @@ describe('<AvatarNFT />', () => {
       pageParam: 'test123',
     }
     await queryFn(mockContext as any)
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2))
     // @ts-ignore
     expect(fetch.mock.lastCall[0]).toMatch(/pageKey=test123/)
   })
