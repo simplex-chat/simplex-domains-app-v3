@@ -17,6 +17,7 @@ import useWindowSize from '@app/hooks/useWindowSize'
 import { useTransactionFlow } from '@app/transaction-flow/TransactionFlowProvider'
 import { dateFromDateDiff } from '@app/utils/date'
 import { isMobileDevice } from '@app/utils/device'
+import { addressNoteStyle } from '@app/utils/snrcIntents'
 import { getAllowanceCharge } from '@app/utils/snrcSponsor'
 import { secondsToDays } from '@app/utils/time'
 import { formatDurationOfDates } from '@app/utils/utils'
@@ -286,7 +287,11 @@ const Complete = ({ name, beautifiedName, callback, isMoonpayFlow, registrationD
       />
       <TitleContainer>
         <Title>{t('steps.complete.heading')}</Title>
-        <Typography style={{ display: 'inline' }} fontVariant="headingThree" weight="bold">
+        <Typography
+          style={{ display: 'inline', ...addressNoteStyle }}
+          fontVariant="headingThree"
+          weight="bold"
+        >
           {registrationData.credit?.intents ? (
             t('steps.complete.registeredTo', {
               name: beautifiedName,

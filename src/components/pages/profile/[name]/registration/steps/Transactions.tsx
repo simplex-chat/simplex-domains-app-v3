@@ -26,7 +26,7 @@ import { CenteredTypography } from '@app/transaction-flow/input/ProfileEditor/co
 import { createTransactionItem } from '@app/transaction-flow/transaction'
 import { useTransactionFlow } from '@app/transaction-flow/TransactionFlowProvider'
 import { sendEvent } from '@app/utils/analytics/events'
-import { SignedIntent, signingErrorMessage } from '@app/utils/snrcIntents'
+import { addressNoteStyle, SignedIntent, signingErrorMessage } from '@app/utils/snrcIntents'
 import { Terms } from '@app/utils/snrcNameTerms'
 import { Credit, isSignedFor, SignedCredit } from '@app/utils/snrcSponsor'
 import { ONE_DAY } from '@app/utils/time'
@@ -688,13 +688,21 @@ const Transactions = ({
             </Button>
           </MobileFullWidth>
           {ownerAcceptance.error && (
-            <Helper alert="error">{signingErrorMessage(ownerAcceptance.error)}</Helper>
+            <Helper alert="error" style={addressNoteStyle}>
+              {signingErrorMessage(ownerAcceptance.error)}
+            </Helper>
           )}
         </>
       )}
-      {needsSignatures && <Helper alert="info">{t('steps.info.temporaryOwner', { owner })}</Helper>}
+      {needsSignatures && (
+        <Helper alert="info" style={addressNoteStyle}>
+          {t('steps.info.temporaryOwner', { owner })}
+        </Helper>
+      )}
       {ownerSignatures.error && (
-        <Helper alert="error">{signingErrorMessage(ownerSignatures.error)}</Helper>
+        <Helper alert="error" style={addressNoteStyle}>
+          {signingErrorMessage(ownerSignatures.error)}
+        </Helper>
       )}
       <ButtonContainer>
         {match(transactionState)

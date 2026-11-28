@@ -16,6 +16,7 @@ import { createTransactionItem } from '@app/transaction-flow/transaction'
 import TransactionLoader from '@app/transaction-flow/TransactionLoader'
 import { TransactionDialogPassthrough } from '@app/transaction-flow/types'
 import { ClaimNode } from '@app/utils/snrcClaimChecks'
+import { addressNoteStyle } from '@app/utils/snrcIntents'
 import { formatFullExpiry } from '@app/utils/utils'
 
 const List = styled.ul(
@@ -48,7 +49,7 @@ const NodeRecords = ({ node, testId }: { node: ClaimNode; testId?: string }) => 
   return (
     <>
       {node.customResolver && (
-        <Helper alert="warning">
+        <Helper alert="warning" style={addressNoteStyle}>
           {t('input.claimName.resolver', { resolver: node.customResolver })}
         </Helper>
       )}

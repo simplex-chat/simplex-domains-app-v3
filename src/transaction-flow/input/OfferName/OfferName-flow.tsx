@@ -12,7 +12,7 @@ import { useIntentSigner } from '@app/hooks/useIntentSigner'
 import { useConnectedHolder } from '@app/hooks/useNameOffer'
 import { createTransactionItem } from '@app/transaction-flow/transaction'
 import { TransactionDialogPassthrough } from '@app/transaction-flow/types'
-import { SignedIntent, signingErrorMessage } from '@app/utils/snrcIntents'
+import { addressNoteStyle, SignedIntent, signingErrorMessage } from '@app/utils/snrcIntents'
 
 import { SearchView } from '../SendName/views/SearchView/SearchView'
 
@@ -86,15 +86,19 @@ const OfferName = ({ data: { name }, dispatch, onDismiss }: Props) => {
           <Helper alert="warning">{t('input.offerName.contract')}</Helper>
         )}
         {!!replaced && replaced.toLowerCase() !== recipient.toLowerCase() && (
-          <Helper alert="info">{t('input.offerName.replaces', { recipient: replaced })}</Helper>
+          <Helper alert="info" style={addressNoteStyle}>
+            {t('input.offerName.replaces', { recipient: replaced })}
+          </Helper>
         )}
         {connectedHolder?.kind === 'relayed' && (
-          <Helper alert="info">
+          <Helper alert="info" style={addressNoteStyle}>
             {t('input.offerName.relayed', { holder: connectedHolder.account })}
           </Helper>
         )}
         {holderSignature.error && (
-          <Helper alert="error">{signingErrorMessage(holderSignature.error)}</Helper>
+          <Helper alert="error" style={addressNoteStyle}>
+            {signingErrorMessage(holderSignature.error)}
+          </Helper>
         )}
       </Dialog.Content>
       <Dialog.Footer

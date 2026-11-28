@@ -8,7 +8,7 @@ import {
   TransactionDisplayItem,
   TransactionFunctionParameters,
 } from '@app/types'
-import { encodeApproveName, SignedIntent } from '@app/utils/snrcIntents'
+import { addressNoteStyle, encodeApproveName, SignedIntent } from '@app/utils/snrcIntents'
 
 type Data = {
   name: string
@@ -38,6 +38,7 @@ const helper = (
   intent && {
     alert: 'info',
     children: t('transaction.info.withdrawOfferRelayed', { holder: intent.signer }),
+    style: addressNoteStyle,
   }
 
 const transaction = ({ client, data }: TransactionFunctionParameters<Data>) => ({

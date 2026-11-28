@@ -12,7 +12,7 @@ import { useEstimateFullRegistration } from '@app/hooks/gasEstimation/useEstimat
 import { useIntentSigner, useSigningState } from '@app/hooks/useIntentSigner'
 import { useRegistrarAllowance } from '@app/hooks/useRegistrarAllowance'
 import useRegistrationParams from '@app/hooks/useRegistrationParams'
-import { signingErrorMessage } from '@app/utils/snrcIntents'
+import { addressNoteStyle, signingErrorMessage } from '@app/utils/snrcIntents'
 import { isSignedFor } from '@app/utils/snrcSponsor'
 
 import AllowanceInvoice from '../AllowanceInvoice'
@@ -181,11 +181,15 @@ const Info = ({ registrationData, name, callback, onProfileClick }: Props) => {
         <FullInvoice {...estimate} />
       )}
       {temporaryOwner && asksSignatures && (
-        <Helper alert="info">
+        <Helper alert="info" style={addressNoteStyle}>
           {t('steps.info.temporaryOwner', { owner: temporaryOwner.owner })}
         </Helper>
       )}
-      {signatures.error && <Helper alert="error">{signingErrorMessage(signatures.error)}</Helper>}
+      {signatures.error && (
+        <Helper alert="error" style={addressNoteStyle}>
+          {signingErrorMessage(signatures.error)}
+        </Helper>
+      )}
       {!registrationData.queue.includes('profile') && (
         <ProfileButton data-testid="setup-profile-button" onClick={onProfileClick}>
           <Typography weight="bold" color="accent">

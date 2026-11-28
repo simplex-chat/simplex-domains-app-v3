@@ -9,7 +9,7 @@ import { useIntentSigner } from '@app/hooks/useIntentSigner'
 import { useConnectedHolder } from '@app/hooks/useNameOffer'
 import { createTransactionItem } from '@app/transaction-flow/transaction'
 import { useTransactionFlow } from '@app/transaction-flow/TransactionFlowProvider'
-import { SignedIntent, signingErrorMessage } from '@app/utils/snrcIntents'
+import { addressNoteStyle, SignedIntent, signingErrorMessage } from '@app/utils/snrcIntents'
 
 export const NameOfferBanner = ({ name }: { name: string }) => {
   const { t } = useTranslation('profile')
@@ -24,7 +24,11 @@ export const NameOfferBanner = ({ name }: { name: string }) => {
 
   if (isRecipient)
     return (
-      <Banner alert="info" title={t('banner.offer.recipient.title', { name })}>
+      <Banner
+        alert="info"
+        title={t('banner.offer.recipient.title', { name })}
+        style={addressNoteStyle}
+      >
         <BannerMessageWithAction
           content={t('banner.offer.recipient.description', { holder })}
           button={{
@@ -42,7 +46,7 @@ export const NameOfferBanner = ({ name }: { name: string }) => {
 
   if (connectedHolder)
     return (
-      <Banner alert="info" title={t('banner.offer.holder.title')}>
+      <Banner alert="info" title={t('banner.offer.holder.title')} style={addressNoteStyle}>
         <BannerMessageWithAction
           content={t('banner.offer.holder.description', { recipient })}
           button={{

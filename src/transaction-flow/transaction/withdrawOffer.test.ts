@@ -80,6 +80,7 @@ describe('withdrawOffer', () => {
     expect(withdrawOffer.helper!({ name: 'alice.testing', intent }, t)).toEqual({
       alert: 'info',
       children: 'transaction.info.withdrawOfferRelayed',
+      style: { overflowWrap: 'anywhere' },
     })
   })
 })
