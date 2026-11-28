@@ -55,9 +55,10 @@ const renderHelper = ({
 
 describe('MoreTab', () => {
   describe('Token', () => {
-    it('should show token section if ownerData is defined', () => {
-      renderHelper({ name: 'test', isWrapped: false, ownerData: {} as any })
-      expect(screen.getByText('Token')).toBeVisible()
+    it('should not show the token section', () => {
+      renderHelper({ name: 'test.simplex', isWrapped: false, ownerData: {} as any })
+      expect(screen.queryByText('Token')).not.toBeInTheDocument()
+      expect(screen.getByText('Resolver')).toBeVisible()
     })
   })
 })
